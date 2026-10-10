@@ -270,7 +270,7 @@ function RequestStepper({
                 <button
                   type="button"
                   onClick={() => onStep(index)}
-                  className="rounded-full bg-navy-soft px-3 py-1.5 text-xs font-medium text-ink sm:text-sm"
+                  className="rounded-full bg-[#CCFFCC] px-3 py-1.5 text-xs font-medium text-ink sm:text-sm"
                 >
                   {label}
                 </button>
@@ -280,7 +280,7 @@ function RequestStepper({
                   className={clsx(
                     "px-3 py-1.5 text-xs sm:text-sm",
                     current
-                      ? "rounded-full bg-gold-light font-medium text-ink"
+                      ? "rounded-full bg-sand font-medium text-ink"
                       : "text-white/60",
                   )}
                 >
@@ -676,10 +676,10 @@ function ClientStep({
                     setValue("contactMethod", item, { shouldValidate: true });
                   }}
                   className={clsx(
-                    "rounded-full px-4 py-2 text-sm font-medium",
+                    "rounded-full px-3 py-1.5 text-sm font-medium text-ink",
                     method === item
-                      ? "bg-navy text-white"
-                      : "border border-line bg-white text-ink hover:border-navy",
+                      ? "bg-[#CCFFCC]"
+                      : "border border-sand bg-white hover:bg-sand/40",
                   )}
                 >
                   {item}

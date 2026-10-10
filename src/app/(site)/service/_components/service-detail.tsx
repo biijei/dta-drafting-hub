@@ -1,43 +1,55 @@
 import { FileText } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { DeliverableList } from "./deliverable-list";
 import { ImportantNotice } from "./important-notice";
 import { ServiceFaqList } from "./service-faq";
-import { ServiceIcon } from "./service-icon";
 import { RequestButton } from "@/components/ui/request-button";
-import { formatDollars, requestHref, type Service } from "@/content/services";
+import {
+  formatDollars,
+  requestHref,
+  serviceIllustrations,
+  type Service,
+} from "@/content/services";
 
 export function ServiceDetail({ service }: { service: Service }) {
   return (
     <div className="flex flex-1 flex-col bg-white">
       <section className="relative flex h-[250px] items-center overflow-hidden bg-gradient-to-r from-navy to-navy-bright">
-        <div className="relative mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-5">
-            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-navy-wash sm:h-36 sm:w-36">
-              <ServiceIcon
-                name={service.icon}
-                className="h-10 w-10 text-gold sm:h-12 sm:w-12"
-              />
-            </div>
-            <div>
-              <h1 className="max-w-3xl font-heading text-[40px] font-medium leading-[0.97] tracking-normal text-white">
-                {service.title}
-              </h1>
-              <p className="mt-3 max-w-xl font-sans text-base font-normal leading-[1.26] tracking-normal text-white">
-                {service.subtitle}
-              </p>
-            </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-0 h-[160px] w-[160px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-navy-wash sm:h-[420px] sm:w-[420px]"
+        />
+        <div className="pointer-events-none absolute top-1/2 left-0 grid h-[160px] w-[80px] -translate-y-1/2 place-items-center sm:h-[250px] sm:w-[210px]">
+          <Image
+            src={serviceIllustrations[service.slug]}
+            alt=""
+            width={80}
+            height={60}
+            unoptimized
+            className="h-10 w-auto sm:h-16"
+          />
+        </div>
+        <div className="relative mx-auto flex w-full max-w-[90rem] flex-col gap-4 py-8 pr-4 pl-[6rem] sm:gap-6 sm:pl-[15.5rem] min-[768px]:flex-row min-[768px]:items-center min-[768px]:justify-between">
+          <div className="min-w-0">
+            <h1 className="max-w-full font-heading text-[32px] font-medium leading-[0.97] tracking-normal text-white sm:text-[40px]">
+              {service.title}
+            </h1>
+            <p className="mt-3 max-w-xl font-sans text-base font-normal leading-[1.26] tracking-normal text-white">
+              {service.subtitle}
+            </p>
           </div>
           <Link
             href="/service"
-            className="inline-flex shrink-0 items-center justify-center self-end rounded-full bg-white px-6 py-2.5 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-white/90 sm:self-center"
+            className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-white px-6 py-2.5 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-white/90 sm:self-center"
           >
             Back
           </Link>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[90rem] px-4 pb-28 pt-10">
+      <section className="pb-28 pt-10">
+        <div className="mx-auto w-full max-w-[1040px] px-4">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(17rem,0.85fr)]">
           <div className="order-2 space-y-5 lg:order-1">
             <article className="rounded-2xl border border-line bg-card px-5 py-6 sm:px-6">
@@ -96,7 +108,6 @@ export function ServiceDetail({ service }: { service: Service }) {
               items={service.faqs}
               defaultOpen={service.defaultFaqOpen}
             />
-            <ImportantNotice />
           </div>
 
           <aside className="order-1 lg:order-2">
@@ -133,6 +144,10 @@ export function ServiceDetail({ service }: { service: Service }) {
               <DeliverableList items={service.deliverables} />
             </div>
           </aside>
+        </div>
+        <div className="mt-6">
+          <ImportantNotice />
+        </div>
         </div>
       </section>
     </div>

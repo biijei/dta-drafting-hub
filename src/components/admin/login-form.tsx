@@ -1,0 +1,92 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { readSession, writeSession } from "@/lib/admin-store";
+
+export function LoginForm() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (readSession()) {
+      router.replace("/admin");
+    }
+  }, [router]);
+
+  function signIn() {
+    if (!email.trim() || !password.trim()) {
+      setError("Enter your email and password.");
+      return;
+    }
+
+    writeSession(email.trim());
+    router.replace("/admin");
+  }
+
+  return (
+    <main className="admin-app relative flex flex-1 items-center justify-center overflow-hidden bg-[#0B1C4E] px-4 py-16">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -left-[18%] top-[-20%] h-[160%] w-[42%] -rotate-[28deg] bg-[#10245C]" />
+        <div className="absolute left-[8%] top-[-30%] h-[170%] w-[22%] -rotate-[28deg] bg-[#16306F]/70" />
+        <div className="absolute right-[-12%] top-[-15%] h-[150%] w-[38%] -rotate-[28deg] bg-[#08153A]/80" />
+        <div className="absolute right-[12%] top-[-25%] h-[160%] w-[16%] -rotate-[28deg] bg-white/[0.035]" />
+      </div>
+      <div className="relative w-full max-w-[420px] text-center">
+        <h1 className="text-[32px] font-bold text-white">Admin Login</h1>
+        <p className="mt-2 text-sm text-white/75">
+          Sign in to the administration panel
+        </p>
+        <form
+          className="mt-6 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            signIn();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              signIn();
+            }
+          }}
+        >
+          <label className="block text-sm font-medium text-[#1F2937]">
+            Email
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Enter your email"
+              autoComplete="username"
+              className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm font-normal outline-none placeholder:text-[#C5CAD3] focus:border-[#C9D0DE]"
+            />
+          </label>
+          <label className="mt-4 block text-sm font-medium text-[#1F2937]">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm font-normal outline-none placeholder:text-[#C5CAD3] focus:border-[#C9D0DE]"
+            />
+          </label>
+          {error ? (
+            <p className="mt-3 text-sm text-[#E25555]">{error}</p>
+          ) : null}
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={signIn}
+              className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white"
+            >
+              Login
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+}

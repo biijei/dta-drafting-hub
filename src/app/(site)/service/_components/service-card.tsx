@@ -77,7 +77,7 @@ export function ServiceCard({
             </Link>
             <Link
               href={requestHref(service.slug)}
-              className="inline-flex items-center gap-2 rounded-full bg-navy py-1.5 pr-1.5 pl-4 text-sm font-medium text-white transition-colors hover:bg-navy/90"
+              className="inline-flex items-center gap-2 rounded-full bg-navy py-1.5 pr-1.5 pl-4 text-xs font-medium text-white transition-colors hover:bg-navy/90"
             >
               Request service
               <span className="grid h-7 w-7 place-items-center rounded-full bg-lime text-navy">
