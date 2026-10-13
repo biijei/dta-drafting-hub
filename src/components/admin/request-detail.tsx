@@ -13,9 +13,9 @@ const card =
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-6 py-2 text-sm">
-      <span className="text-[#6B7280]">{label}</span>
-      <span className="text-right font-semibold">{value}</span>
+    <div className="flex items-start justify-between gap-4 py-2 text-sm sm:gap-6">
+      <span className="shrink-0 text-[#6B7280]">{label}</span>
+      <span className="min-w-0 break-words text-right font-semibold">{value}</span>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function RequestDetail({ id }: { id: string }) {
   if (!request) {
     return (
       <div>
-        <h1 className="text-[32px]">Request not found</h1>
+        <h1 className="text-2xl sm:text-[32px]">Request not found</h1>
         <Link href="/admin/requests" className="mt-4 inline-flex text-sm text-[#3B5BDB]">
           Back to requests
         </Link>
@@ -82,9 +82,9 @@ export function RequestDetail({ id }: { id: string }) {
         onChange={onFile}
       />
       <div className="bg-white px-4 pt-6 sm:px-7">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[32px] leading-none">{request.title}</h1>
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl leading-none sm:text-[32px]">{request.title}</h1>
             <p className="mt-2 text-sm text-[#6B7280]">{request.displayId}</p>
           </div>
           <Link
@@ -140,11 +140,11 @@ export function RequestDetail({ id }: { id: string }) {
               {request.submittedFile ? (
                 <section className={card}>
                   <h2 className="text-base">Submitted Files</h2>
-                  <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-[#F4F6FB] px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <FileText className="size-5 text-[#98A2B3]" />
-                      <div>
-                        <p className="text-sm font-semibold">
+                  <div className="mt-4 flex flex-col gap-3 rounded-xl bg-[#F4F6FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <FileText className="size-5 shrink-0 text-[#98A2B3]" />
+                      <div className="min-w-0">
+                        <p className="break-all text-sm font-semibold">
                           {request.submittedFile.name}
                         </p>
                         <p className="text-xs text-[#9CA3AF]">
@@ -270,7 +270,7 @@ export function RequestDetail({ id }: { id: string }) {
           </div>
         ) : (
           <div>
-            <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg">Documents</h2>
               <button
                 type="button"

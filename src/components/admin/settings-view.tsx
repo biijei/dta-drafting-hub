@@ -27,10 +27,10 @@ export function SettingsView() {
 
   return (
     <div>
-      <h1 className="text-[32px] leading-none">Settings</h1>
+      <h1 className="text-2xl leading-none sm:text-[32px]">Settings</h1>
       <div className="mt-6 grid max-w-[680px] gap-5">
         <form
-          className="rounded-[20px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+          className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
           onSubmit={(event) => {
             event.preventDefault();
             updateSettings(business);
@@ -107,7 +107,7 @@ export function SettingsView() {
         </form>
 
         <form
-          className="rounded-[20px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+          className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
           onSubmit={(event) => {
             event.preventDefault();
             updateSettings({ disclaimer });
@@ -140,7 +140,7 @@ export function SettingsView() {
         </form>
 
         <form
-          className="rounded-[20px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+          className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
           onSubmit={(event) => {
             event.preventDefault();
             setPasswordMessage("");

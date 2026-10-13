@@ -25,7 +25,7 @@ export function RequestWorkspace({ request }: RequestWorkspaceProps) {
       <section className="relative overflow-hidden bg-gradient-to-r from-navy to-navy-bright">
         <div className="relative mx-auto w-full max-w-[90rem] px-4 pt-10">
           <p className="text-sm text-white/70">Request Workspace</p>
-          <h1 className="mt-2 max-w-3xl font-heading text-[40px] font-medium leading-[0.97] tracking-normal text-white">
+          <h1 className="mt-2 max-w-3xl font-heading text-[28px] font-medium leading-[0.97] tracking-normal text-white md:text-[40px]">
             {request.title}
           </h1>
           <p className="mt-2 text-sm text-white/80">ID: {request.id}</p>

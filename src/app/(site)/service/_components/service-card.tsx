@@ -21,7 +21,7 @@ export function ServiceCard({
   const pale = (row + column) % 2 === 0;
 
   return (
-    <article className="relative h-auto w-full max-w-[680px] overflow-hidden rounded-[24px] border border-navy-soft bg-card min-[1400px]:h-[248px]">
+    <article className="@container relative h-auto w-full max-w-[680px] overflow-hidden rounded-[24px] border border-navy-soft bg-card">
       <div
         aria-hidden
         className={clsx(
@@ -40,7 +40,7 @@ export function ServiceCard({
         />
       </div>
 
-      <div className="relative flex h-full flex-col pt-[22px] pr-[15px] pb-[22px] pl-[110px] min-[1400px]:flex-row min-[1400px]:gap-4">
+      <div className="relative flex h-full min-h-0 flex-col pt-[22px] pr-[15px] pb-[22px] pl-[96px] sm:pl-[110px] @xl:min-h-[248px] @xl:flex-row @xl:gap-4">
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-sm text-ink">{service.turnaround}</p>
           <h2 className="mt-3 text-xl font-semibold tracking-tight text-ink">
@@ -49,7 +49,7 @@ export function ServiceCard({
           <p className="mt-2 text-sm leading-5 text-muted">
             {service.cardDescription}
           </p>
-          <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 min-[1400px]:mt-auto min-[1400px]:pt-3">
+          <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 @xl:mt-auto @xl:pt-3">
             {service.deliverables.map((item) => (
               <li
                 key={item}
@@ -61,14 +61,14 @@ export function ServiceCard({
           </ul>
         </div>
 
-        <div className="mt-4 flex shrink-0 flex-col items-end min-[1400px]:mt-0 min-[1400px]:w-[10.5rem]">
+        <div className="mt-4 flex shrink-0 flex-col items-end @xl:mt-0 @xl:w-[10.5rem]">
           <div className="text-right">
             <p className="text-xs text-muted">From</p>
             <p className="text-2xl font-semibold tracking-tight text-ink">
               {formatDollars(service.price)}
             </p>
           </div>
-          <div className="mt-4 flex flex-col items-end gap-2 min-[1400px]:mt-auto">
+          <div className="mt-4 flex flex-col items-end gap-2 @xl:mt-auto">
             <Link
               href={`/service/${service.slug}`}
               className="text-sm font-medium text-ink hover:text-navy"

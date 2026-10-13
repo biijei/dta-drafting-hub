@@ -30,7 +30,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Admin" className="mt-8 flex flex-col gap-1.5 px-4">
+    <nav aria-label="Admin" className="mt-5 flex flex-col gap-1.5 px-4">
       {navItems.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -61,7 +61,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-3 px-5 pt-6">
+    <div className="flex items-center gap-3 border-b border-white/20 px-5 pb-5 pt-6">
       <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-white">
         <Image
           src="/icons/logo.svg"
@@ -165,7 +165,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <span className="grid size-8 place-items-center rounded-full bg-[#3B82F6] text-white">
                 <UserRound className="size-4" />
               </span>
-              <span className="text-sm font-medium text-[#1F2937]">{name}</span>
+              <span className="hidden max-w-[9rem] truncate text-sm font-medium text-[#1F2937] sm:inline-block">
+                {name}
+              </span>
               <ChevronDown className="size-4 text-[#6B7280]" />
             </button>
             {accountOpen ? (

@@ -256,7 +256,7 @@ function RequestStepper({
 }) {
   return (
     <div className="bg-navy">
-      <ol className="mx-auto flex w-full max-w-3xl items-center justify-center overflow-x-auto px-4 py-5">
+      <ol className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-center gap-y-2 px-4 py-5">
         {steps.map((label, index) => {
           const complete = index < step;
           const current = index === step;

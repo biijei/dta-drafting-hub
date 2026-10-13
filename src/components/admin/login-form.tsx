@@ -35,12 +35,12 @@ export function LoginForm() {
         <div className="absolute right-[12%] top-[-25%] h-[160%] w-[16%] -rotate-[28deg] bg-white/[0.035]" />
       </div>
       <div className="relative w-full max-w-[420px] text-center">
-        <h1 className="text-[32px] font-bold text-white">Admin Login</h1>
+        <h1 className="text-2xl font-bold text-white sm:text-[32px]">Admin Login</h1>
         <p className="mt-2 text-sm text-white/75">
           Sign in to the administration panel
         </p>
         <form
-          className="mt-6 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+          className="mt-6 rounded-[22px] bg-white px-4 py-5 text-left shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:px-6 sm:py-6"
           onSubmit={(event) => {
             event.preventDefault();
             signIn();

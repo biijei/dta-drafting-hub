@@ -34,7 +34,7 @@ export function RequestsView() {
 
   return (
     <div>
-      <h1 className="text-[32px] leading-none">Request</h1>
+      <h1 className="text-2xl leading-none sm:text-[32px]">Request</h1>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <label className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-[#E6E8EE] bg-white px-4 py-3 text-[#9CA3AF] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
           <Search className="size-4 shrink-0" />
@@ -63,7 +63,7 @@ export function RequestsView() {
             {requests.map((request) => (
               <li
                 key={request.id}
-                className="grid items-center gap-4 border-b border-[#F3F4F6] px-6 py-5 last:border-b-0 lg:grid-cols-[1.15fr_1fr_1.15fr_0.9fr_auto]"
+                className="grid items-start gap-4 border-b border-[#F3F4F6] px-4 py-5 last:border-b-0 sm:px-6 md:grid-cols-2 xl:items-center xl:grid-cols-[1.15fr_1fr_1.15fr_0.9fr_11rem]"
               >
                 <div>
                   <p className="text-xs text-[#9CA3AF]">Client</p>
@@ -84,7 +84,7 @@ export function RequestsView() {
                   <p className="text-xs text-[#9CA3AF]">Assigned</p>
                   <p className="mt-1 font-semibold">{request.assignee ?? "-"}</p>
                 </div>
-                <div className="flex flex-col items-start gap-2 lg:items-end">
+                <div className="flex flex-col items-start gap-2 md:col-span-2 xl:col-span-1 xl:items-end">
                   <StatusPill status={request.status} />
                   <Link
                     href={`/admin/requests/${request.id}`}

@@ -15,24 +15,24 @@ import {
 export function ServiceDetail({ service }: { service: Service }) {
   return (
     <div className="flex flex-1 flex-col bg-white">
-      <section className="relative flex h-[250px] items-center overflow-hidden bg-gradient-to-r from-navy to-navy-bright">
+      <section className="relative flex min-h-[250px] items-center overflow-hidden bg-gradient-to-r from-navy to-navy-bright py-8">
         <div
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-0 h-[160px] w-[160px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-navy-wash sm:h-[420px] sm:w-[420px]"
+          className="pointer-events-none absolute top-1/2 left-0 h-[160px] w-[160px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-navy-wash md:h-[420px] md:w-[420px]"
         />
-        <div className="pointer-events-none absolute top-1/2 left-0 grid h-[160px] w-[80px] -translate-y-1/2 place-items-center sm:h-[250px] sm:w-[210px]">
+        <div className="pointer-events-none absolute top-1/2 left-0 grid h-[160px] w-[80px] -translate-y-1/2 place-items-center md:h-[250px] md:w-[210px]">
           <Image
             src={serviceIllustrations[service.slug]}
             alt=""
             width={80}
             height={60}
             unoptimized
-            className="h-10 w-auto sm:h-16"
+            className="h-10 w-auto md:h-16"
           />
         </div>
-        <div className="relative mx-auto flex w-full max-w-[90rem] flex-col gap-4 py-8 pr-4 pl-[6rem] sm:gap-6 sm:pl-[15.5rem] min-[768px]:flex-row min-[768px]:items-center min-[768px]:justify-between">
+        <div className="relative mx-auto flex w-full max-w-[90rem] flex-col gap-4 py-8 pr-4 pl-[6rem] md:flex-row md:items-center md:justify-between md:gap-6 md:pl-[15.5rem]">
           <div className="min-w-0">
-            <h1 className="max-w-full font-heading text-[32px] font-medium leading-[0.97] tracking-normal text-white sm:text-[40px]">
+            <h1 className="max-w-full font-heading text-[28px] font-medium leading-[0.97] tracking-normal text-white md:text-[40px]">
               {service.title}
             </h1>
             <p className="mt-3 max-w-xl font-sans text-base font-normal leading-[1.26] tracking-normal text-white">

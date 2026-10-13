@@ -1,6 +1,7 @@
 "use client";
 
-import { CircleCheck, Image as ImageIcon } from "lucide-react";
+import { clsx } from "clsx";
+import Image from "next/image";
 import Link from "next/link";
 import { overviewStats } from "@/content/admin";
 import { useAdmin } from "@/lib/admin-store";
@@ -8,6 +9,38 @@ import { StatusPill } from "./status-pill";
 
 const card =
   "rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+
+function CardIcon({
+  src,
+  background,
+  shape,
+  className,
+}: {
+  src: string;
+  background: string;
+  shape: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={clsx(
+        "grid size-9 place-items-center",
+        shape,
+        className,
+      )}
+      style={{ backgroundColor: background }}
+    >
+      <Image
+        src={src}
+        alt=""
+        width={18}
+        height={18}
+        unoptimized
+        className="h-[18px] w-auto"
+      />
+    </span>
+  );
+}
 
 function OpenLink({ href }: { href: string }) {
   return (
@@ -28,26 +61,27 @@ export function OverviewView() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <h1 className="text-[32px] leading-none">Overview</h1>
+      <div className="mb-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl leading-none sm:text-[32px]">Overview</h1>
         <Link
           href="/admin/requests"
-          className="inline-flex rounded-full bg-[#0C1B4D] px-5 py-2.5 text-sm font-medium text-white"
+          className="inline-flex rounded-full bg-[#0D1B4B] px-5 py-2.5 text-sm font-medium text-[#D3B48A]"
         >
           View request
         </Link>
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="grid gap-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <article className={`${card} p-5`}>
-              <div className="flex items-start justify-between">
-                <p className="text-sm text-[#6B7280]">Total Requests</p>
-                <span className="grid size-8 place-items-center rounded-md bg-[#1B2A6B] text-[11px] font-semibold tracking-tight text-white">
-                  [+]
-                </span>
-              </div>
+      <div className="grid gap-4">
+        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <article className={`${card} relative overflow-visible p-5`}>
+              <CardIcon
+                src="/icons/admin/total-request.svg"
+                background="#0D1B4B"
+                shape="rounded-lg"
+                className="absolute right-0 top-5 -translate-y-1/2"
+              />
+              <p className="text-sm text-[#6B7280]">Total Requests</p>
               <p className="mt-5 text-[34px] font-semibold leading-none">
                 {overviewStats.totalRequests}
               </p>
@@ -55,13 +89,14 @@ export function OverviewView() {
                 {overviewStats.totalChange}
               </p>
             </article>
-            <article className={`${card} p-5`}>
-              <div className="flex items-start justify-between">
-                <p className="text-sm text-[#6B7280]">New Requests</p>
-                <span className="grid size-8 place-items-center rounded-lg bg-[#EEF1F8] text-[#8B95B2]">
-                  <ImageIcon className="size-4" />
-                </span>
-              </div>
+            <article className={`${card} relative overflow-visible p-5`}>
+              <CardIcon
+                src="/icons/admin/new-request.svg"
+                background="#D7DCED"
+                shape="rounded-lg"
+                className="absolute right-0 top-5 -translate-y-1/2"
+              />
+              <p className="text-sm text-[#6B7280]">New Requests</p>
               <p className="mt-5 text-[34px] font-semibold leading-none">
                 {overviewStats.newRequests}
               </p>
@@ -69,11 +104,14 @@ export function OverviewView() {
                 {overviewStats.newCaption}
               </p>
             </article>
-            <article className={`${card} p-5`}>
-              <div className="flex items-start justify-between">
-                <p className="text-sm text-[#6B7280]">In Progress</p>
-                <CircleCheck className="size-6 text-[#C5CAD6]" strokeWidth={1.5} />
-              </div>
+            <article className={`${card} relative overflow-visible p-5`}>
+              <CardIcon
+                src="/icons/admin/in-progress.svg"
+                background="#FFF8EE"
+                shape="rounded-lg"
+                className="absolute right-0 top-5 -translate-y-1/2"
+              />
+              <p className="text-sm text-[#6B7280]">In Progress</p>
               <p className="mt-5 text-[34px] font-semibold leading-none">
                 {overviewStats.inProgress}
               </p>
@@ -83,31 +121,54 @@ export function OverviewView() {
             </article>
           </div>
 
+          <article className="relative flex h-full flex-col overflow-visible rounded-[20px] bg-[#0C1B4D] p-5 text-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+            <p className="text-sm text-[#D3B48A]">Revenue (AUD)</p>
+            <p className="mt-auto pt-8 text-[34px] font-semibold leading-none text-white">
+              {overviewStats.revenue}
+            </p>
+            <p className="mt-2 text-sm text-[#D3B48A]">
+              {overviewStats.revenueCaption}
+            </p>
+            <CardIcon
+              src="/icons/admin/revenue-icon.svg"
+              background="#404C73"
+              shape="rounded-lg"
+              className="absolute -bottom-0 -right-0"
+            />
+          </article>
+        </div>
+
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid gap-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <article className={`${card} px-6 py-5`}>
+            <article className={`${card} flex items-center justify-between px-6 py-5`}>
               <p className="text-sm text-[#6B7280]">Awaiting Client</p>
-              <p className="mt-3 text-center text-[34px] font-semibold leading-none">
-                {overviewStats.awaitingClient}
-              </p>
-              <p className="mt-2 text-center text-sm text-[#9CA3AF]">
-                {overviewStats.awaitingCaption}
-              </p>
+              <div className="text-center">
+                <p className="text-[34px] font-semibold leading-none">
+                  {overviewStats.awaitingClient}
+                </p>
+                <p className="mt-2 text-sm text-[#9CA3AF]">
+                  {overviewStats.awaitingCaption}
+                </p>
+              </div>
             </article>
-            <article className={`${card} px-6 py-5`}>
+            <article className={`${card} flex items-center justify-between px-6 py-5`}>
               <p className="text-sm text-[#6B7280]">Completed</p>
-              <p className="mt-3 text-center text-[34px] font-semibold leading-none">
-                {overviewStats.completed}
-              </p>
-              <p className="mt-2 text-center text-sm text-[#9CA3AF]">
-                {overviewStats.completedCaption}
-              </p>
+              <div className="text-center">
+                <p className="text-[34px] font-semibold leading-none">
+                  {overviewStats.completed}
+                </p>
+                <p className="mt-2 text-sm text-[#9CA3AF]">
+                  {overviewStats.completedCaption}
+                </p>
+              </div>
             </article>
           </div>
 
           <section className={`${card} px-6 py-5`}>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-base">Recent Requests</h2>
-              <Link href="/admin/requests" className="text-sm font-medium text-[#3B5BDB]">
+              <Link href="/admin/requests" className="text-sm font-medium text-[#0D1B4B]">
                 View all
               </Link>
             </div>
@@ -115,16 +176,16 @@ export function OverviewView() {
               {recent.map((request) => (
                 <li
                   key={request.id}
-                  className="flex items-center justify-between gap-4 border-b border-[#F1F2F6] py-4 last:border-b-0"
+                  className="flex flex-col gap-3 border-b border-[#F1F2F6] py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-[#9CA3AF]">{request.displayId}</p>
                     <p className="mt-0.5 text-[15px] font-semibold">
                       {request.clientName}
                     </p>
                     <p className="text-xs text-[#9CA3AF]">{request.service}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-start gap-2 sm:items-end">
                     <StatusPill status={request.status} />
                     <OpenLink href={`/admin/requests/${request.id}`} />
                   </div>
@@ -134,28 +195,15 @@ export function OverviewView() {
           </section>
         </div>
 
-        <div className="grid gap-4">
-          <article className="relative overflow-hidden rounded-[20px] bg-[#0C1B4D] p-5 text-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-            <p className="text-sm text-white/70">Revenue (AUD)</p>
-            <p className="mt-8 text-[34px] font-semibold leading-none">
-              {overviewStats.revenue}
-            </p>
-            <p className="mt-2 text-sm text-white/55">
-              {overviewStats.revenueCaption}
-            </p>
-            <span className="absolute bottom-4 right-4 grid size-8 place-items-center rounded-md bg-white/10 text-white/80">
-              <ImageIcon className="size-4" />
-            </span>
-          </article>
-
+          <div className="grid content-start gap-4">
           <section className={`${card} px-5 py-5`}>
             <h2 className="text-base">Pending Actions</h2>
-            <ul className="mt-3">
+            <ul className="mt-3 space-y-3">
               {pending.flatMap((request) =>
                 Array.from({ length: request.pendingRepeats }, (_, index) => (
                   <li
                     key={`${request.id}-${index}`}
-                    className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] py-3 last:border-b-0"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-[#EEF0F4] px-3 py-3"
                   >
                     <div className="min-w-0">
                       <p className="text-xs text-[#9CA3AF]">{request.displayId}</p>
@@ -181,15 +229,15 @@ export function OverviewView() {
           <section className={`${card} px-5 py-5`}>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-base">Recent Payments</h2>
-              <Link href="/admin/payments" className="text-sm font-medium text-[#3B5BDB]">
+              <Link href="/admin/payments" className="text-sm font-medium text-[#0D1B4B]">
                 View all
               </Link>
             </div>
-            <ul>
+            <ul className="space-y-3">
               {payments.map((payment) => (
                 <li
                   key={payment.id}
-                  className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] py-3 last:border-b-0"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-[#EEF0F4] px-3 py-3"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{payment.clientName}</p>
@@ -198,7 +246,7 @@ export function OverviewView() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <p className="text-sm font-semibold text-[#34A35A]">
+                    <p className="text-sm font-semibold text-[#121826]">
                       {payment.amount}
                     </p>
                     <StatusPill status={payment.status} />
@@ -207,6 +255,7 @@ export function OverviewView() {
               ))}
             </ul>
           </section>
+        </div>
         </div>
       </div>
     </div>

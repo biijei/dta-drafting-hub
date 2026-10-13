@@ -17,7 +17,7 @@ export default function ServicesPage() {
         title="Our Services"
         description="Professional document support across a range of personal and business needs."
       />
-      <section className="mx-auto grid w-full max-w-[90rem] grid-cols-1 justify-items-center gap-[15px] px-4 py-12 min-[1400px]:grid-cols-2">
+      <section className="mx-auto grid w-full max-w-[90rem] grid-cols-1 justify-items-center gap-[15px] px-4 py-12 xl:grid-cols-2">
         {services.map((service, index) => (
           <ServiceCard key={service.slug} service={service} index={index} />
         ))}

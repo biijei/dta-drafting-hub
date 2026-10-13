@@ -25,37 +25,33 @@ export function HomeServices() {
         </p>
       </div>
 
-      <div className="mx-auto mt-10 grid max-w-[1380px] grid-cols-1 justify-items-center gap-[15px] min-[1400px]:grid-cols-3">
+      <div className="mx-auto mt-10 grid max-w-[1380px] grid-cols-1 justify-items-center gap-[15px] md:grid-cols-2 xl:grid-cols-3">
         {services.map((service, index) => {
           const layout = cardLayouts[index];
 
           return (
             <article
               key={service.slug}
-              className="relative h-[284px] w-full max-w-[450px] overflow-hidden rounded-[24px] border border-line bg-card"
+              className="relative flex min-h-[240px] w-full max-w-[450px] flex-col overflow-hidden rounded-[24px] border border-line bg-card sm:min-h-[284px]"
             >
               <div
                 aria-hidden
                 className={clsx(
-                  "pointer-events-none absolute top-[22px] h-[240px] w-[117px] left-[2px] rounded-r-[120px]",
+                  "pointer-events-none absolute top-[22px] left-[2px] h-[200px] w-[84px] rounded-r-[120px] lg:h-[240px] lg:w-[117px]",
                   layout.tone === "lime" ? "bg-lime" : "bg-[#F6F8FF]",
                 )}
               />
-              <div className="pointer-events-none absolute top-[22px] left-[2px] grid h-[240px] w-[117px] place-items-center">
+              <div className="pointer-events-none absolute top-[22px] left-[2px] grid h-[200px] w-[84px] place-items-center lg:h-[240px] lg:w-[117px]">
                 <Image
                   src={serviceIllustrations[service.slug]}
                   alt=""
                   width={80}
                   height={60}
                   unoptimized
-                  className="h-16 w-auto"
+                  className="h-12 w-auto lg:h-16"
                 />
               </div>
-              <div
-                className={clsx(
-                  "relative flex h-full flex-col pt-[22px] pb-[22px] pr-[15px] pl-[132px]",
-                )}
-              >
+              <div className="relative flex flex-1 flex-col py-[22px] pr-[15px] pl-[96px] lg:pl-[132px]">
                 <p className="text-sm text-ink">
                   From {formatDollars(service.price)}
                 </p>

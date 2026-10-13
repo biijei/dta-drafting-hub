@@ -26,10 +26,10 @@ export function HomeHero() {
           width={48}
           height={48}
           unoptimized
-          className="absolute top-8 left-8 hidden h-12 w-12 sm:block"
+          className="absolute top-8 left-8 hidden h-12 w-12 md:block"
         />
 
-        <h1 className="text-[1.45rem] font-extrabold leading-[0.97] tracking-normal sm:text-4xl lg:text-[64px]">
+        <h1 className="text-[1.45rem] font-extrabold leading-[0.97] tracking-normal sm:text-4xl md:text-5xl lg:text-[64px]">
           <span className="block text-lime">Professional Document</span>
           <span className="mt-1 block text-white">
             Drafting & <span className="text-violet">Review,</span>
@@ -56,11 +56,11 @@ export function HomeHero() {
             width={48}
             height={48}
             unoptimized
-            className="mr-10 hidden h-12 w-12 justify-self-end sm:mr-28 sm:block lg:mr-40"
+            className="mr-10 hidden h-12 w-12 justify-self-end md:mr-28 md:block lg:mr-40"
           />
           <Link
             href={requestServiceHref}
-            className="inline-flex rounded-full bg-lime px-6 py-3 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+            className="col-start-2 inline-flex rounded-full bg-lime px-6 py-3 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
           >
             Request a service
           </Link>
@@ -80,7 +80,7 @@ export function HomeHero() {
               />
             ))}
           </div>
-          <p className={`${script.className} flex gap-4 mt-3 leading-none text-white`}>
+          <p className={`${script.className} mt-3 flex flex-wrap justify-center gap-4 leading-none text-white`}>
             <span className="block text-3xl">Review</span>
             <span className="-mt-1 block text-xl">by experts</span>
           </p>
@@ -90,7 +90,7 @@ export function HomeHero() {
             width={48}
             height={48}
             unoptimized
-            className="absolute top-0 right-[8%] hidden h-12 w-12 sm:block lg:right-[18%]"
+            className="absolute top-0 right-[8%] hidden h-12 w-12 md:block lg:right-[18%]"
           />
         </div>
       </div>

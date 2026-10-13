@@ -37,9 +37,9 @@ export function HomeWhy() {
           </p>
         </div>
 
-        <div className="mx-auto mt-12 flex w-fit max-w-full flex-wrap justify-center gap-5">
+        <div className="mx-auto mt-12 grid w-full max-w-5xl grid-cols-1 justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {whyChoose.map((item, index) => (
-            <article key={item.title} className="text-center">
+            <article key={item.title} className="w-full max-w-[284px] text-center">
               <Image
                 src={cardIcons[index]}
                 alt=""
@@ -48,7 +48,7 @@ export function HomeWhy() {
                 unoptimized
                 className="mx-auto h-6 w-6"
               />
-              <div className="mt-4 h-[100px] w-[284px] shrink-0 rounded-[13px] bg-card px-[9px] py-[13px] text-left shadow-[0_8px_24px_rgba(13,27,75,0.05)]">
+              <div className="mt-4 min-h-[100px] w-full rounded-[13px] bg-card px-[9px] py-[13px] text-left shadow-[0_8px_24px_rgba(13,27,75,0.05)]">
                 <h3 className="text-sm font-semibold text-ink">{item.title}</h3>
                 <p className="mt-1 text-xs leading-4 text-muted">
                   {item.description}

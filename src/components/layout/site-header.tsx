@@ -24,7 +24,7 @@ export function SiteHeader() {
             unoptimized
             className="h-9 w-auto"
           />
-          <span className="truncate text-sm font-semibold text-navy sm:text-base">
+          <span className="min-w-0 truncate text-sm font-semibold text-navy sm:text-base">
             DTA Drafting Hub LLC
           </span>
         </Link>

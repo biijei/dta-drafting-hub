@@ -27,8 +27,8 @@ export function PaymentsView() {
 
   return (
     <div>
-      <h1 className="text-[32px] leading-none">Payments</h1>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <h1 className="text-2xl leading-none sm:text-[32px]">Payments</h1>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className={card}>
           <p className="text-sm text-[#6B7280]">Total Collected</p>
           <p className="mt-4 text-[32px] font-semibold leading-none">
@@ -83,7 +83,7 @@ export function PaymentsView() {
             {payments.map((payment) => (
               <li
                 key={payment.id}
-                className="grid items-center gap-4 border-b border-[#F3F4F6] px-6 py-5 last:border-b-0 lg:grid-cols-[1fr_1fr_1fr_auto_1fr]"
+                className="grid items-start gap-4 border-b border-[#F3F4F6] px-4 py-5 last:border-b-0 sm:px-6 md:grid-cols-2 xl:items-center xl:grid-cols-[1fr_1fr_1fr_auto_1fr]"
               >
                 <div>
                   <p className="text-xs text-[#9CA3AF]">Transaction ID</p>
@@ -103,7 +103,7 @@ export function PaymentsView() {
                     <StatusPill status={payment.status} />
                   </div>
                 </div>
-                <div className="lg:text-right">
+                <div className="md:col-span-2 xl:col-span-1 xl:text-right">
                   <p className="text-xs text-[#9CA3AF]">Date</p>
                   <p className="mt-1 text-sm font-semibold">{payment.date}</p>
                 </div>

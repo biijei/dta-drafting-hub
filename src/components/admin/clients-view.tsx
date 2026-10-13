@@ -28,7 +28,7 @@ export function ClientsView() {
 
   return (
     <div>
-      <h1 className="text-[32px] leading-none">Clients</h1>
+      <h1 className="text-2xl leading-none sm:text-[32px]">Clients</h1>
       <label className="mt-5 flex items-center gap-3 rounded-xl border border-[#E6E8EE] bg-white px-4 py-3 text-[#9CA3AF] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
         <Search className="size-4 shrink-0" />
         <input
@@ -53,9 +53,9 @@ export function ClientsView() {
             {visible.map((client) => (
               <li
                 key={client.id}
-                className="grid items-center gap-4 border-b border-[#F3F4F6] px-6 py-5 last:border-b-0 md:grid-cols-[1.3fr_0.8fr_repeat(4,0.7fr)_1fr]"
+                className="grid items-start gap-4 border-b border-[#F3F4F6] px-4 py-5 last:border-b-0 sm:px-6 md:grid-cols-2 xl:items-center xl:grid-cols-[1.3fr_0.8fr_repeat(4,0.7fr)_1fr]"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 md:col-span-2 xl:col-span-1">
                   <p className="font-semibold">{client.name}</p>
                   <p className="break-all text-xs leading-snug text-[#9CA3AF]">
                     {client.email}
@@ -77,7 +77,7 @@ export function ClientsView() {
         aria-label="Client pages"
         className="mt-6 flex justify-center"
       >
-        <div className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-white px-2 py-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <PagerButton
             label="Previous page"
             disabled={currentPage === 1}

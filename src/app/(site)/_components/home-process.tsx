@@ -13,7 +13,7 @@ export function HomeProcess() {
           </p>
         </div>
 
-        <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+        <ol className="mt-12 grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {homeProcessSteps.map((step, index) => (
             <li key={step.number} className="relative text-center">
               {index < homeProcessSteps.length - 1 ? (
@@ -39,11 +39,11 @@ export function HomeProcess() {
       </div>
 
       <div className="bg-[#F6F8FF]">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-start justify-center gap-8 px-4 py-8 sm:justify-between">
+        <div className="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-8 px-4 py-8 sm:grid-cols-2">
           {supportNotes.map((note) => (
             <article
               key={note.title}
-              className="h-[100px] w-[284px] shrink-0 rounded-[13px] bg-card px-[9px] py-[13px] text-left shadow-sm"
+              className="min-h-[100px] w-full max-w-[284px] rounded-[13px] bg-card px-[9px] py-[13px] text-left shadow-sm"
             >
               <h3 className="text-sm font-semibold text-ink">{note.title}</h3>
               <p className="mt-1 text-xs leading-4 text-muted">
