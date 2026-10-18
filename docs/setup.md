@@ -44,7 +44,7 @@ set role = 'owner',
 ```
 
 5. Sign in at `/admin/login`.
-6. Open **Settings** and save the business email. New-request, payment, and revision alerts go to that address. If it is empty, they go to `BUSINESS_EMAIL`.
+6. Open **Settings** and save the business email. New-request, payment, revision, and approval alerts go to that address. If it is empty, they go to `BUSINESS_EMAIL`.
 7. Further staff are created from **Settings → Team**. That form creates a specialist. Specialists can work requests. They cannot change business settings or add staff.
 
 ## 4. PayPal
@@ -78,6 +78,7 @@ These messages are sent:
 - The business email from Settings, after PayPal confirms payment: start the work or assign it.
 - The client, when a draft is uploaded: draft ready.
 - The business email from Settings, when the client requests a revision.
+- The business email from Settings, when the client approves the draft: upload the final document.
 - The client, when the final file is uploaded: request completed.
 
 Until the domain is verified, Resend will reject mail. The request is still saved.

@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import type { PaymentStatus, RequestStatus } from "@/content/admin";
 
 const pillClass: Record<RequestStatus | PaymentStatus, string> = {
@@ -16,16 +16,25 @@ const pillClass: Record<RequestStatus | PaymentStatus, string> = {
   Refunded: "bg-[#FDE8E8] text-[#C45C5C]",
 };
 
+export function isPillStatus(
+  status: string,
+): status is RequestStatus | PaymentStatus {
+  return status in pillClass;
+}
+
 export function StatusPill({
   status,
+  className,
 }: {
   status: RequestStatus | PaymentStatus;
+  className?: string;
 }) {
   return (
     <span
-      className={clsx(
+      className={twMerge(
         "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium leading-none",
         pillClass[status],
+        className,
       )}
     >
       {status}

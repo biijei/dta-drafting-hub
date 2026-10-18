@@ -14,6 +14,6 @@ A client does not pay when they send a request. They send the details and files 
 
 6. If they ask for changes, the request becomes Revision Requested. The business inbox gets an email with the client’s note and an "Open the request" button. Staff update the draft and upload it again. The client is emailed when that new draft is ready, with an "Open your request" button, and they can approve it or ask for another change.
 
-7. If they approve, the request becomes Approved. Staff then upload the final document. The request becomes Completed. The client gets an email that the document is complete, with an "Open your request" button, and can download it from the request page.
+7. If they approve, the request becomes Approved. The business inbox gets an email that the draft was approved, with an "Upload the final document" button that opens that request in the admin panel. Staff upload the final document. A new draft cannot be uploaded once the request is Approved. The request becomes Completed. The client gets an email that the document is complete, with an "Open your request" button, and can download it from the request page.
 
 Business emails go to the primary email saved in Admin Settings. The client’s emails always go to the email address on the request.

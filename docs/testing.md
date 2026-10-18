@@ -29,6 +29,7 @@ Run `supabase/migrations/002_quote_payment.sql` first if submit returns “Could
 
 - Client can download the draft, approve it, or send a revision note.
 - A revision emails the primary address in Settings and sets **Revision Requested**.
+- Approving the draft emails that same address with **Upload the final document** and sets **Approved**. In the upload modal, **Draft for client review** is disabled and a draft upload is rejected.
 - Final upload is available only after **Approved**. It sets **Completed**, emails the client, and the file downloads from the workspace.
 
 ## PayPal webhook

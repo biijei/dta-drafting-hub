@@ -570,7 +570,11 @@ export function RequestDetail({ id }: { id: string }) {
               value={kind}
               onChange={(next) => setKind(next === "final" ? "final" : "draft")}
               options={[
-                { value: "draft", label: "Draft for client review" },
+                {
+                  value: "draft",
+                  label: "Draft for client review",
+                  disabled: request.status === "Approved",
+                },
                 {
                   value: "final",
                   label: "Final document",

@@ -35,6 +35,7 @@ Each message includes a button. Client buttons open `/track-request/<Request ID>
 - That same capture → business. Payment is confirmed; start the work or assign a specialist. **Open the request**. `sendPaymentReceivedAlert`. A repeated capture does not send it again.
 - Draft upload → client. `sendDraftReady`, with **Open your request**.
 - Client asks for changes → business. `sendRevisionAlert`, with **Open the request**.
+- Client approves the draft → business. `sendApprovedAlert`, with **Upload the final document**.
 - Final upload → client. `sendCompleted`, with **Open your request**.
 
 ## The path
@@ -77,12 +78,12 @@ The buyer does not have to return to the site for this to happen. Localhost cann
 Draft upload and **Mark in progress** stay unavailable until the status is **Submitted** or later.
 
 - `PATCH /api/admin/requests/[id]` with `{ status: "In Progress" }` moves Submitted or Revision Requested to **In Progress**. The same route saves an internal note or an assignee. Notes are not shown to the client.
-- `POST /api/admin/requests/[id]/documents` with kind `draft` stores the file, sets **Awaiting Your Review**, and emails the client. Kind `final` is accepted only when the status is **Approved**; it sets **Completed** and emails the client.
+- `POST /api/admin/requests/[id]/documents` with kind `draft` stores the file, sets **Awaiting Your Review**, and emails the client. A draft is rejected once the status is **Approved** or **Completed**. Kind `final` is accepted only when the status is **Approved**; it sets **Completed** and emails the client.
 - `GET /api/files/[id]` returns a 60-second signed download URL. The caller must be staff, or the client whose track cookie matches that request.
 
 The client, on **Awaiting Your Review**:
 
-- `POST /api/track/requests/[id]/approve` sets **Approved**.
+- `POST /api/track/requests/[id]/approve` sets **Approved** and emails the Settings primary address, or `BUSINESS_EMAIL` in env, to upload the final document.
 - `POST /api/track/requests/[id]/revisions` stores the note and any new files, sets **Revision Requested**, and emails the Settings primary address or `BUSINESS_EMAIL` in env.
 
 Staff upload another draft (back to **Awaiting Your Review**) or, after approval, the final file (**Completed**). The client downloads that file from the workspace.

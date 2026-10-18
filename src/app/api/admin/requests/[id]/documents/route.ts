@@ -47,6 +47,10 @@ export async function POST(request: Request, context: RouteContext) {
       return jsonError("Upload the final document after the client approves the draft.", 400);
     }
 
+    if (kind === "draft" && current.status === "Approved") {
+      return jsonError("The client already approved the draft. Upload the final document.", 400);
+    }
+
     if (kind === "draft" && current.status === "Completed") {
       return jsonError("This request is already complete.", 400);
     }

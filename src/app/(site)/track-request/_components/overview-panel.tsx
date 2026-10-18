@@ -2,7 +2,9 @@
 
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
+import { isPillStatus, StatusPill } from "@/components/admin/status-pill";
 import type { TrackedRequest } from "@/content/track-request";
+import { downloadStoredFile } from "@/lib/download-file";
 import { ApproveConfirm } from "./approve-confirm";
 
 type OverviewPanelProps = {
@@ -29,6 +31,18 @@ const outlineAction =
 
 const payAction =
   "inline-flex rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime";
+
+const limeAction =
+  "rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 disabled:opacity-60";
+
+function firstFinalFile(request: TrackedRequest) {
+  for (const group of request.documents) {
+    const file = group.files.find((item) => item.kind === "final");
+    if (file) return file;
+  }
+
+  return undefined;
+}
 
 function OverviewAction({
   request,
@@ -80,7 +94,10 @@ export function OverviewPanel({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const approveButtonRef = useRef<HTMLButtonElement>(null);
+  const completed = request.status === "Completed";
+  const finalFile = completed ? firstFinalFile(request) : undefined;
 
   function openConfirm() {
     if (pending) return;
@@ -91,6 +108,24 @@ export function OverviewPanel({
   function closeConfirm() {
     if (pending) return;
     setConfirmOpen(false);
+  }
+
+  async function downloadFinal() {
+    if (!finalFile || downloading) return;
+    setError("");
+    setDownloading(true);
+
+    try {
+      await downloadStoredFile(finalFile.id);
+    } catch (downloadError: unknown) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Could not download the file.",
+      );
+    } finally {
+      setDownloading(false);
+    }
   }
 
   async function approve() {
@@ -136,9 +171,16 @@ export function OverviewPanel({
                 <dt className="text-sm text-gray">{field.label}</dt>
                 <dd className="mt-2">
                   {field.pill ? (
-                    <span className="inline-flex rounded-full bg-gold-light px-3 py-1 text-sm font-medium text-ink">
-                      {field.value}
-                    </span>
+                    isPillStatus(field.value) ? (
+                      <StatusPill
+                        status={field.value}
+                        className="px-3 py-1 text-sm"
+                      />
+                    ) : (
+                      <span className="inline-flex rounded-full bg-[#E7EBF3] px-3 py-1 text-sm font-medium text-[#6D7C99]">
+                        {field.value}
+                      </span>
+                    )
                   ) : (
                     <span className="text-sm font-semibold text-ink">
                       {field.value}
@@ -175,7 +217,7 @@ export function OverviewPanel({
                 onClick={openConfirm}
                 disabled={pending}
                 aria-busy={pending}
-                className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 disabled:opacity-60"
+                className={limeAction}
               >
                 {pending ? "Approving…" : "Approve document"}
               </button>
@@ -184,14 +226,26 @@ export function OverviewPanel({
               request={request}
               onRequestChange={onRequestChange}
             />
-            <button
-              type="button"
-              onClick={onViewDocument}
-              disabled={request.documents.length === 0}
-              className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted disabled:opacity-50"
-            >
-              View document
-            </button>
+            {completed ? (
+              <button
+                type="button"
+                onClick={() => void downloadFinal()}
+                disabled={!finalFile || downloading}
+                aria-busy={downloading}
+                className={limeAction}
+              >
+                {downloading ? "Downloading…" : "Download final document"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onViewDocument}
+                disabled={request.documents.length === 0}
+                className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted disabled:opacity-50"
+              >
+                View document
+              </button>
+            )}
           </div>
         </article>
       </div>

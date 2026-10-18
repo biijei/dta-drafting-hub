@@ -268,6 +268,26 @@ export async function sendDraftReady(input: {
   });
 }
 
+export async function sendApprovedAlert(input: {
+  requestUuid: string;
+  requestId: string;
+  title: string;
+  clientName: string;
+}) {
+  const href = adminRequestUrl(input.requestUuid);
+
+  await sendToBusiness({
+    subject: `Draft approved for ${input.requestId}`,
+    action: { label: "Upload the final document", href },
+    text: [
+      `${input.clientName} approved the draft for ${input.requestId}.`,
+      `Service: ${input.title}`,
+      "Upload the final document from the admin panel.",
+      href,
+    ].join("\n"),
+  });
+}
+
 export async function sendRevisionAlert(input: {
   requestUuid: string;
   requestId: string;
