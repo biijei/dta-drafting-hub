@@ -16,7 +16,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearSession, readSession } from "@/lib/admin-store";
+import { useAdmin } from "@/lib/admin-store";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutGrid, exact: true },
@@ -87,14 +87,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [name, setName] = useState("Micah Ehioze");
-
-  useEffect(() => {
-    const session = readSession();
-    if (session?.name) {
-      setName(session.name);
-    }
-  }, []);
+  const { data } = useAdmin();
+  const name = data.profile.name;
 
   useEffect(() => {
     if (!accountOpen) {
@@ -107,8 +101,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [accountOpen]);
 
   function signOut() {
-    clearSession();
-    router.replace("/admin/login");
+    void fetch("/api/admin/logout", { method: "POST" }).finally(() => {
+      router.replace("/admin/login");
+    });
   }
 
   return (

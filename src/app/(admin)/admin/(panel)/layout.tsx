@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { AdminProvider, readSession } from "@/lib/admin-store";
+import { AdminProvider } from "@/lib/admin-store";
 
 export default function AdminPanelLayout({
   children,
@@ -11,16 +11,20 @@ export default function AdminPanelLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    if (!readSession()) {
-      router.replace("/admin/login");
-      return;
-    }
+    void fetch("/api/admin/me").then((response) => {
+      if (!response.ok) {
+        const next = pathname.startsWith("/admin/") ? `?next=${encodeURIComponent(pathname)}` : "";
+        router.replace(`/admin/login${next}`);
+        return;
+      }
 
-    setAllowed(true);
-  }, [router]);
+      setAllowed(true);
+    });
+  }, [pathname, router]);
 
   if (!allowed) {
     return <div className="admin-app min-h-full flex-1 bg-[#F3F4F6]" />;

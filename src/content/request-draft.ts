@@ -1,9 +1,5 @@
 import type { TrackedRequest } from "@/content/track-request";
-import {
-  formatAud,
-  getService,
-  type Service,
-} from "@/content/services";
+import { getService, type Service } from "@/content/services";
 
 export type UploadedFile = {
   name: string;
@@ -22,9 +18,11 @@ export type ClientInfo = {
   contactMethod: ContactMethod;
 };
 
-export type QuoteSummary = {
-  reference: string;
-  expires: string;
+export type Confirmation = {
+  id: string;
+  title: string;
+  amount: string;
+  turnaround: string;
 };
 
 export type RequestDraft = {
@@ -33,8 +31,7 @@ export type RequestDraft = {
   details: Record<string, string>;
   client: ClientInfo;
   step: number;
-  quote: QuoteSummary | null;
-  submittedId: string | null;
+  confirmation: Confirmation | null;
 };
 
 export const emptyClient: ClientInfo = {
@@ -68,8 +65,7 @@ export function emptyDraft(slug = ""): RequestDraft {
     details: {},
     client: emptyClient,
     step: 0,
-    quote: null,
-    submittedId: null,
+    confirmation: null,
   };
 }
 
@@ -163,25 +159,6 @@ export function saveSubmittedRequest(request: TrackedRequest) {
   emit(submittedListeners);
 }
 
-export function createQuote(): QuoteSummary {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const suffix = String(Math.floor(Math.random() * 90) + 10);
-  const expires = new Date(now);
-  expires.setDate(expires.getDate() + 7);
-
-  return {
-    reference: `Q-${month}${day}-${suffix}`,
-    expires: expires.toISOString().slice(0, 10),
-  };
-}
-
-export function createRequestId() {
-  const suffix = String(Math.floor(Math.random() * 9000) + 1000);
-  return `DTA-2026-${suffix}`;
-}
-
 export function formatSubmittedAt(date: Date) {
   const day = date.toLocaleDateString("en-GB", {
     day: "numeric",
@@ -229,21 +206,27 @@ export function buildTrackedRequest(
           {
             title: service.title,
             files: draft.files.map((file) => ({
+              id: file.name,
               filename: file.name,
               uploadedAt: submitted,
               author: draft.client.fullName,
               note: "Uploaded with your request.",
+              kind: "client_upload" as const,
             })),
           },
         ]
       : [],
     payment: {
-      status: "Paid",
-      transactionId: draft.quote?.reference ?? id,
-      amount: formatAud(service.price),
-      method: "—",
-      date: submitted,
+      status: "Pending",
+      transactionId: "—",
+      amount: "To be quoted",
+      method: "PayPal",
+      date: "—",
     },
+    paymentUrl: null,
+    activity: [],
+    canApprove: false,
+    canRevise: false,
   };
 }
 

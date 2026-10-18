@@ -37,7 +37,7 @@ export const faqItems: FaqItem[] = [
     category: "Process",
     question: "How long does it take to complete a request?",
     answer:
-      "Timing depends on the document and the details you provide. Your quote includes the expected turnaround before you accept.",
+      "Timing depends on the document and the details you provide. Each service shows its expected turnaround. Work starts after DTA reviews the request and PayPal confirms the quoted payment.",
   },
   {
     id: "changes",
@@ -51,7 +51,7 @@ export const faqItems: FaqItem[] = [
     category: "Process",
     question: "What happens after I submit a request?",
     answer:
-      "We review your request and prepare a tailored quote. You'll receive the quote in your request workspace and by email. You can accept or decline before any work begins.",
+      "We save the request and email you a Request ID. DTA reviews the files, then emails a PayPal link for the quoted USD amount. Work starts after that payment is confirmed. Track the request with the Request ID and the email on the request.",
   },
   {
     id: "file-types",
@@ -72,20 +72,20 @@ export const faqItems: FaqItem[] = [
     category: "Payment",
     question: "When do I pay?",
     answer:
-      "Once you accept the quote, we collect payment securely. A receipt is generated and attached to your request.",
+      "Submit the request and files first. DTA reviews them and emails a PayPal link for the quoted USD amount. The same link is on the Payment tab of your request workspace. Work starts after PayPal confirms the payment.",
   },
   {
     id: "payment-methods",
     category: "Payment",
     question: "What payment methods are accepted?",
     answer:
-      "Payment is collected securely after you accept the quote. The available methods are shown at checkout.",
+      "PayPal, in USD. The payment link is emailed after DTA sets the price, and it is also shown in your request workspace.",
   },
   {
     id: "tracking",
     category: "Tracking",
     question: "How do I track my request?",
     answer:
-      "You can track progress in real time from your request workspace, from the quote through document preparation to the final download.",
+      "Open Track My Request and enter your Request ID plus the email on the request. From there you can pay, follow the draft, request changes, and download the final document.",
   },
 ];

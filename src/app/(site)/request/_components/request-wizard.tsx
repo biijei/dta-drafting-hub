@@ -8,30 +8,24 @@ import { useId, useState, useSyncExternalStore } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import {
-  buildTrackedRequest,
   clearDraft,
   contactMethods,
-  createQuote,
-  createRequestId,
   emptyDraft,
   getDraftSnapshot,
   getServerDraft,
-  readSubmittedRequest,
-  saveSubmittedRequest,
   subscribeDraft,
   writeDraft,
   type ClientInfo,
+  type Confirmation,
   type RequestDraft,
   type UploadedFile,
 } from "@/content/request-draft";
 import {
-  formatAud,
   getService,
   services,
   type Service,
   type ServiceField,
 } from "@/content/services";
-import type { TrackedRequest } from "@/content/track-request";
 
 const steps = ["Details/Documents", "Client Info", "Review", "Confirmation"];
 const maxFileBytes = 10 * 1024 * 1024;
@@ -95,15 +89,11 @@ function resolveDraft(stored: RequestDraft | null, initialSlug: string) {
     }
   }
 
-  if (next.submittedId && !readSubmittedRequest(next.submittedId)) {
-    return { ...next, submittedId: null, step: Math.min(next.step, 2) };
-  }
-
-  if (next.submittedId && next.step !== 3) {
+  if (next.confirmation && next.step !== 3) {
     return { ...next, step: 3 };
   }
 
-  if (!next.submittedId && next.step > 2) {
+  if (!next.confirmation && next.step > 2) {
     return { ...next, step: 2 };
   }
 
@@ -134,10 +124,12 @@ function RequestFlow({
   const serviceLocked = Boolean(initialSlug && getService(initialSlug));
   const draft = resolveDraft(stored, initialSlug);
   const [fileError, setFileError] = useState("");
-  const submitted = draft.submittedId
-    ? (readSubmittedRequest(draft.submittedId) ?? null)
-    : null;
+  const [blobs, setBlobs] = useState<File[]>([]);
   const service = getService(draft.slug);
+  const visibleDraft = {
+    ...draft,
+    files: blobs.map((file) => ({ name: file.name, size: file.size })),
+  };
 
   function commit(next: RequestDraft) {
     writeDraft(next);
@@ -161,27 +153,29 @@ function RequestFlow({
       return;
     }
 
-    const names = new Set(draft.files.map((file) => file.name));
-    commit({
-      ...draft,
-      files: [...draft.files, ...accepted.filter((file) => !names.has(file.name))],
-    });
+    const names = new Set(blobs.map((file) => file.name));
+    const incoming = Array.from(list).filter(
+      (file) =>
+        accepted.some((item) => item.name === file.name) && !names.has(file.name),
+    );
+    setBlobs((current) => [...current, ...incoming]);
   }
 
   function removeFile(name: string) {
-    commit({
-      ...draft,
-      files: draft.files.filter((file) => file.name !== name),
-    });
+    setBlobs((current) => current.filter((file) => file.name !== name));
   }
 
   function chooseService(slug: string) {
+    if (draft.slug !== slug) {
+      setBlobs([]);
+    }
+
     commit({
       ...draft,
       slug,
       details: draft.slug === slug ? draft.details : {},
-      quote: null,
-      submittedId: null,
+      confirmation: null,
+      files: [],
     });
   }
 
@@ -189,26 +183,30 @@ function RequestFlow({
     <div className="flex flex-1 flex-col bg-white">
       <RequestStepper
         step={draft.step}
-        onStep={(step) =>
+        onStep={(step) => {
+          if (step > 2) {
+            return;
+          }
+
           commit({
             ...draft,
             step,
-            submittedId: step < 3 ? null : draft.submittedId,
-          })
-        }
+            confirmation: null,
+          });
+        }}
       />
       {draft.step === 0 ? (
         <DetailsStep
           service={service}
           serviceLocked={serviceLocked}
-          details={draft.details}
-          files={draft.files}
+          details={visibleDraft.details}
+          files={visibleDraft.files}
           fileError={fileError}
           onSlug={chooseService}
           onFiles={addFiles}
           onRemoveFile={removeFile}
           onContinue={(details) =>
-            commit({ ...draft, details, step: 1, submittedId: null })
+            commit({ ...draft, details, step: 1, confirmation: null, files: [] })
           }
         />
       ) : null}
@@ -221,27 +219,25 @@ function RequestFlow({
               ...draft,
               client,
               step: 2,
-              quote: draft.quote ?? createQuote(),
-              submittedId: null,
+              confirmation: null,
+              files: [],
             })
           }
         />
       ) : null}
-      {draft.step === 2 && service && draft.quote ? (
+      {draft.step === 2 && service ? (
         <ReviewStep
           service={service}
-          draft={draft}
-          onEdit={(step) => commit({ ...draft, step, submittedId: null })}
-          onContinue={() => {
-            const id = createRequestId();
-            const request = buildTrackedRequest(draft, service, id);
-            saveSubmittedRequest(request);
-            commit({ ...draft, step: 3, submittedId: id });
-          }}
+          draft={visibleDraft}
+          files={blobs}
+          onEdit={(step) => commit({ ...draft, step, confirmation: null, files: [] })}
+          onSubmitted={(confirmation) =>
+            commit({ ...draft, step: 3, confirmation, files: [] })
+          }
         />
       ) : null}
-      {draft.step === 3 && submitted ? (
-        <ConfirmationStep request={submitted} onHome={clearDraft} />
+      {draft.step === 3 && draft.confirmation ? (
+        <ConfirmationStep confirmation={draft.confirmation} onHome={clearDraft} />
       ) : null}
     </div>
   );
@@ -751,14 +747,47 @@ function TextField({
 function ReviewStep({
   service,
   draft,
+  files,
   onEdit,
-  onContinue,
+  onSubmitted,
 }: {
   service: Service;
   draft: RequestDraft;
+  files: File[];
   onEdit: (step: number) => void;
-  onContinue: () => void;
+  onSubmitted: (confirmation: Confirmation) => void;
 }) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setError("");
+    setBusy(true);
+    const body = new FormData();
+    body.set("serviceSlug", service.slug);
+    body.set("client", JSON.stringify(draft.client));
+    body.set("details", JSON.stringify(draft.details));
+    files.forEach((file) => body.append("files", file));
+
+    try {
+      const response = await fetch("/api/requests", { method: "POST", body });
+      const payload = (await response.json()) as {
+        error?: string;
+        confirmation?: Confirmation;
+      };
+
+      if (!response.ok || !payload.confirmation) {
+        setError(payload.error || "Could not submit the request.");
+        return;
+      }
+
+      onSubmitted(payload.confirmation);
+    } catch {
+      setError("Could not submit the request.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const clientRows = [
     ["Name", draft.client.fullName],
     ["Email", draft.client.email],
@@ -772,7 +801,7 @@ function ReviewStep({
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-semibold tracking-tight text-ink">
-        Review / payment
+        Review your request
       </h1>
       <p className="mt-2 text-sm text-muted">{service.title}</p>
 
@@ -819,42 +848,29 @@ function ReviewStep({
         </ReviewCard>
 
         <article className="rounded-2xl border border-line bg-card px-5 py-5 sm:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <h2 className="text-base font-semibold text-ink">Quote Reference</h2>
-            <p className="text-sm font-semibold text-ink">
-              {draft.quote?.reference}
-            </p>
-          </div>
-          <p className="mt-1 text-xs text-muted">Expires: {draft.quote?.expires}</p>
-          <dl className="mt-5 space-y-3 text-sm">
-            <div className="flex items-start justify-between gap-4">
-              <dt className="text-muted">Service fee — {service.title}</dt>
-              <dd className="font-medium text-ink">{formatAud(service.price)}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Tax</dt>
-              <dd>—</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Discount</dt>
-              <dd>—</dd>
-            </div>
-            <div className="flex justify-between gap-4 border-t border-line pt-3 font-semibold text-ink">
-              <dt>Total</dt>
-              <dd>{formatAud(service.price)}</dd>
-            </div>
-          </dl>
+          <h2 className="text-base font-semibold text-ink">What happens next</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            Submit the request and files now. DTA reviews them and emails a
+            PayPal link for the quoted USD amount. Work starts after that
+            payment is confirmed.
+          </p>
         </article>
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex flex-col items-center gap-3">
         <button
           type="button"
-          onClick={onContinue}
-          className="rounded-full bg-navy px-10 py-2.5 text-sm font-medium text-white hover:bg-navy/90"
+          onClick={() => void submit()}
+          disabled={busy}
+          className="rounded-full bg-navy px-6 py-3 text-sm font-medium text-white hover:bg-navy/90 disabled:opacity-60"
         >
-          Next
+          {busy ? "Submitting…" : "Submit request"}
         </button>
+        {error ? (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -889,17 +905,18 @@ function ReviewCard({
 }
 
 function ConfirmationStep({
-  request,
+  confirmation,
   onHome,
 }: {
-  request: TrackedRequest;
+  confirmation: Confirmation;
   onHome: () => void;
 }) {
   const rows = [
-    ["Service", request.title],
-    ["Payment", request.payment.status.toUpperCase()],
-    ["Turnaround", request.estimatedCompletion],
-    ["Next step", "Await confirmation email"],
+    ["Service", confirmation.title],
+    ["Status", "Pending review"],
+    ["Payment", "Link emailed after review"],
+    ["Turnaround", confirmation.turnaround],
+    ["Next step", "Watch for the payment email"],
   ];
 
   return (
@@ -909,13 +926,13 @@ function ConfirmationStep({
         Request Submitted Successfully
       </h1>
       <p className="mt-3 max-w-md text-sm leading-6 text-muted">
-        We&apos;ve received your request and will be in touch shortly. Please
-        save your Request ID.
+        We received your request. DTA will review the files and email a PayPal
+        link for the quoted amount. Please save your Request ID.
       </p>
       <div className="mt-8 w-full rounded-2xl bg-navy-wash px-6 py-6">
         <p className="text-sm text-muted">Your Request ID</p>
         <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">
-          {request.id}
+          {confirmation.id}
         </p>
       </div>
       <dl className="mt-6 w-full rounded-2xl border border-line px-5 py-4 text-left text-sm">
@@ -931,7 +948,7 @@ function ConfirmationStep({
       </dl>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link
-          href={`/track-request/${request.id}`}
+          href={`/track-request/${confirmation.id}`}
           className="rounded-full bg-navy px-5 py-2.5 text-sm font-medium text-white hover:bg-navy/90"
         >
           View request workspace

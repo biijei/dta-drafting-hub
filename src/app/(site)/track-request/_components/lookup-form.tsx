@@ -2,15 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import { getTrackedRequest } from "@/content/track-request";
 
-export function LookupForm() {
+export function LookupForm({ initialId = "" }: { initialId?: string }) {
   const router = useRouter();
-  const [requestId, setRequestId] = useState("");
+  const [requestId, setRequestId] = useState(initialId);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const id = requestId.trim();
     const mail = email.trim();
@@ -20,20 +20,27 @@ export function LookupForm() {
       return;
     }
 
-    const request = getTrackedRequest(id);
+    setPending(true);
+    setError("");
+    const response = await fetch("/api/track/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: id, email: mail }),
+    });
+    const body = (await response.json()) as { id?: string; error?: string };
+    setPending(false);
 
-    if (!request) {
-      setError("We couldn't find a request with that ID.");
+    if (!response.ok || !body.id) {
+      setError(body.error || "We couldn't find a request with that ID and email.");
       return;
     }
 
-    setError("");
-    router.push(`/track-request/${request.id}`);
+    router.push(`/track-request/${body.id}`);
   }
 
   return (
     <form
-      onSubmit={onSubmit}
+      onSubmit={(event) => void onSubmit(event)}
       className="w-full max-w-md rounded-2xl bg-card px-6 py-7 shadow-sm sm:px-8 sm:py-8"
       noValidate
     >
@@ -45,7 +52,7 @@ export function LookupForm() {
         name="requestId"
         value={requestId}
         onChange={(event) => setRequestId(event.target.value)}
-        placeholder="e.g. DTA-2026-00482"
+        placeholder="e.g. DTA-2026-01000"
         autoComplete="off"
         className="mt-2 w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-navy"
       />
@@ -76,9 +83,10 @@ export function LookupForm() {
       <div className="mt-6 flex justify-center">
         <button
           type="submit"
-          className="rounded-full bg-navy px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy/90"
+          disabled={pending}
+          className="rounded-full bg-navy px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy/90 disabled:opacity-60"
         >
-          View request
+          {pending ? "Looking up…" : "View request"}
         </button>
       </div>
     </form>

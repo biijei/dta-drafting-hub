@@ -6,6 +6,7 @@ import {
   footerServices,
   type NavItem,
 } from "@/content/navigation";
+import { loadPublicDisclaimer } from "@/lib/mail";
 
 function FooterColumn({ title, items }: { title: string; items: NavItem[] }) {
   return (
@@ -27,7 +28,15 @@ function FooterColumn({ title, items }: { title: string; items: NavItem[] }) {
   );
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  let disclaimer = "";
+
+  try {
+    disclaimer = await loadPublicDisclaimer();
+  } catch (error) {
+    console.error(error);
+  }
+
   return (
     <footer className="mt-auto bg-navy text-white">
       <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -61,16 +70,18 @@ export function SiteFooter() {
 
       <div className="mx-auto w-full max-w-[90rem] px-4 pb-8">
         <div className="border-t border-white/15 pt-6">
-          <p className="text-xs leading-5 text-white/55">
-            Disclaimer: DTA Drafting Hub provides document drafting, review, and
-            related support services. Services provided through this platform
-            may vary by jurisdiction and service type. Submitting a request
-            does not by itself establish a lawyer-client relationship. Where
-            legal advice or representation is required, clients should consult
-            a qualified legal professional licensed in the relevant
-            jurisdiction.
-          </p>
-          <p className="mt-6 text-center text-xs text-white/70">
+          {disclaimer ? (
+            <p className="text-xs leading-5 whitespace-pre-line text-white/55">
+              Disclaimer: {disclaimer}
+            </p>
+          ) : null}
+          <p
+            className={
+              disclaimer
+                ? "mt-6 text-center text-xs text-white/70"
+                : "text-center text-xs text-white/70"
+            }
+          >
             © 2026 DTA Drafting Hub. All rights reserved.
           </p>
         </div>

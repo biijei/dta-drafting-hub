@@ -8,6 +8,7 @@ type OverviewPanelProps = {
   request: TrackedRequest;
   onRequestChange: () => void;
   onViewDocument: () => void;
+  onRefresh: () => Promise<void>;
 };
 
 const statusFields = (request: TrackedRequest) => [
@@ -26,8 +27,10 @@ export function OverviewPanel({
   request,
   onRequestChange,
   onViewDocument,
+  onRefresh,
 }: OverviewPanelProps) {
-  const [approved, setApproved] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
@@ -66,19 +69,42 @@ export function OverviewPanel({
           <p className="mt-1 text-sm text-change">
             {request.reviewNotice.description}
           </p>
-          {approved ? (
+          {message ? (
             <p className="mt-4 text-sm font-medium text-navy" role="status">
-              Document approved.
+              {message}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {error}
             </p>
           ) : null}
           <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setApproved(true)}
-              className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90"
-            >
-              Approve document
-            </button>
+            {request.canApprove ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  void fetch(`/api/track/requests/${request.id}/approve`, {
+                    method: "POST",
+                  })
+                    .then(async (response) => {
+                      const body = (await response.json()) as { error?: string };
+                      if (!response.ok) {
+                        setError(body.error || "Could not approve the document.");
+                        return;
+                      }
+
+                      setMessage("Document approved.");
+                      await onRefresh();
+                    })
+                    .catch(() => setError("Could not approve the document."));
+                }}
+                className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90"
+              >
+                Approve document
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onRequestChange}

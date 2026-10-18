@@ -15,9 +15,10 @@ import {
 
 type RequestWorkspaceProps = {
   request: TrackedRequest;
+  onRefresh: () => Promise<void>;
 };
 
-export function RequestWorkspace({ request }: RequestWorkspaceProps) {
+export function RequestWorkspace({ request, onRefresh }: RequestWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>("Overview");
 
   return (
@@ -72,12 +73,17 @@ export function RequestWorkspace({ request }: RequestWorkspaceProps) {
             request={request}
             onRequestChange={() => setTab("Revisions")}
             onViewDocument={() => setTab("Document")}
+            onRefresh={onRefresh}
           />
         ) : null}
-        {tab === "Document" ? <DocumentPanel request={request} /> : null}
-        {tab === "Revisions" ? <RevisionsPanel request={request} /> : null}
+        {tab === "Document" ? (
+          <DocumentPanel request={request} onRefresh={onRefresh} />
+        ) : null}
+        {tab === "Revisions" ? (
+          <RevisionsPanel request={request} onRefresh={onRefresh} />
+        ) : null}
         {tab === "Payment" ? <PaymentPanel request={request} /> : null}
-        {tab === "Activity" ? <ActivityPanel /> : null}
+        {tab === "Activity" ? <ActivityPanel request={request} /> : null}
       </div>
     </div>
   );

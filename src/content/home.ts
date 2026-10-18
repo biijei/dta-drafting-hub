@@ -64,7 +64,7 @@ export const homeFaqs = [
     id: "turnaround",
     question: "How long does a typical request take?",
     answer:
-      "Turnaround depends on the service and complexity. Most documents are completed within 2–7 business days. You’ll receive a timeline in your quote.",
+      "Turnaround depends on the service and complexity. Most documents are completed within 2–7 business days after payment is confirmed. Each service lists its expected turnaround.",
   },
   {
     id: "account",

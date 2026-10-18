@@ -1,189 +1,251 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import {
-  adminSeed,
-  adminUserName,
-  formatFileSize,
-  formatUploadedAt,
-  type AdminData,
-  type AdminDocument,
-  type AdminRequest,
-  type AdminSettings,
+import type {
+  AdminClient,
+  AdminPayment,
+  AdminProfile,
+  AdminRequest,
+  AdminSettings,
+  OverviewStats,
+  PaymentSummary,
+  PendingAction,
+  StaffMember,
 } from "@/content/admin";
 
-const DATA_KEY = "dta-admin-data";
-const SESSION_KEY = "dta-admin-session";
-
-export type AdminSession = {
-  name: string;
-  email: string;
+export type AdminData = {
+  profile: AdminProfile;
+  requests: AdminRequest[];
+  clients: AdminClient[];
+  payments: AdminPayment[];
+  settings: AdminSettings | null;
+  staff: StaffMember[];
+  stats: OverviewStats;
+  paymentSummary: PaymentSummary;
+  pending: PendingAction[];
 };
 
 type AdminStoreValue = {
   data: AdminData;
-  updateRequest: (id: string, patch: Partial<AdminRequest>) => void;
-  addDocument: (requestId: string, file: File) => void;
-  removeDocument: (requestId: string, documentId: string) => void;
-  updateSettings: (patch: Partial<AdminSettings>) => void;
+  reload: () => Promise<void>;
+  updateRequest: (
+    id: string,
+    patch: {
+      assigneeId?: string | null;
+      internalNote?: string;
+      status?: "In Progress";
+    },
+  ) => Promise<void>;
+  uploadDocument: (
+    requestId: string,
+    file: File,
+    kind: "draft" | "final",
+    note: string,
+  ) => Promise<void>;
+  removeDocument: (documentId: string) => Promise<void>;
+  updateSettings: (patch: Partial<AdminSettings>) => Promise<void>;
+  createStaff: (input: {
+    fullName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
+  setStaffActive: (id: string, active: boolean) => Promise<void>;
+  sendPaymentLink: (id: string, amount: string) => Promise<void>;
+  resendPaymentLink: (id: string) => Promise<void>;
 };
 
 const AdminContext = createContext<AdminStoreValue | null>(null);
 
-function isAdminData(value: unknown): value is AdminData {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const data = value as AdminData;
-
-  return (
-    Array.isArray(data.requests) &&
-    Array.isArray(data.clients) &&
-    Array.isArray(data.payments) &&
-    Boolean(data.settings)
-  );
-}
-
-export function readSession(): AdminSession | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(SESSION_KEY);
-
-  if (!raw) {
-    return null;
-  }
-
+async function readError(response: Response) {
   try {
-    const session = JSON.parse(raw) as AdminSession;
-
-    if (!session?.email || !session?.name) {
-      return null;
-    }
-
-    return session;
+    const body = (await response.json()) as { error?: string };
+    return body.error || "Request failed.";
   } catch {
-    return null;
+    return "Request failed.";
   }
 }
 
-export function writeSession(email: string) {
-  const session: AdminSession = { name: adminUserName, email };
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
+async function loadAdmin(): Promise<AdminData> {
+  const [meRes, requestsRes, clientsRes, paymentsRes, overviewRes, usersRes, settingsRes] =
+    await Promise.all([
+      fetch("/api/admin/me"),
+      fetch("/api/admin/requests"),
+      fetch("/api/admin/clients"),
+      fetch("/api/admin/payments"),
+      fetch("/api/admin/overview"),
+      fetch("/api/admin/users"),
+      fetch("/api/admin/settings"),
+    ]);
 
-export function clearSession() {
-  window.localStorage.removeItem(SESSION_KEY);
+  if (meRes.status === 401) {
+    throw new Error("unauthorized");
+  }
+
+  if (!meRes.ok || !requestsRes.ok || !clientsRes.ok || !paymentsRes.ok || !overviewRes.ok || !usersRes.ok) {
+    throw new Error(await readError(requestsRes.ok ? meRes : requestsRes));
+  }
+
+  const me = (await meRes.json()) as { profile: AdminProfile };
+  const requests = (await requestsRes.json()) as { requests: AdminRequest[] };
+  const clients = (await clientsRes.json()) as { clients: AdminClient[] };
+  const payments = (await paymentsRes.json()) as {
+    payments: AdminPayment[];
+    summary: PaymentSummary;
+  };
+  const overview = (await overviewRes.json()) as {
+    stats: OverviewStats;
+    pending: PendingAction[];
+  };
+  const users = (await usersRes.json()) as { users: StaffMember[] };
+  const settings = settingsRes.ok
+    ? ((await settingsRes.json()) as { settings: AdminSettings }).settings
+    : null;
+
+  return {
+    profile: me.profile,
+    requests: requests.requests,
+    clients: clients.clients,
+    payments: payments.payments,
+    settings,
+    staff: users.users,
+    stats: overview.stats,
+    paymentSummary: payments.summary,
+    pending: overview.pending,
+  };
 }
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<AdminData>(adminSeed);
-  const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const [data, setData] = useState<AdminData | null>(null);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const raw = window.localStorage.getItem(DATA_KEY);
-
-    if (raw) {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-
-        if (isAdminData(parsed)) {
-          setData(parsed);
-        }
-      } catch {
-        setData(adminSeed);
+  const reload = useCallback(async () => {
+    try {
+      const next = await loadAdmin();
+      setData(next);
+      setError("");
+    } catch (loadError) {
+      if (loadError instanceof Error && loadError.message === "unauthorized") {
+        router.replace("/admin/login");
+        return;
       }
-    }
 
-    setReady(true);
-  }, []);
+      setError(loadError instanceof Error ? loadError.message : "Could not load admin data.");
+    }
+  }, [router]);
 
   useEffect(() => {
-    if (!ready) {
-      return;
+    let active = true;
+
+    loadAdmin()
+      .then((next) => {
+        if (active) {
+          setData(next);
+          setError("");
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!active) {
+          return;
+        }
+
+        if (loadError instanceof Error && loadError.message === "unauthorized") {
+          router.replace("/admin/login");
+          return;
+        }
+
+        setError(
+          loadError instanceof Error ? loadError.message : "Could not load admin data.",
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  const value = useMemo<AdminStoreValue | null>(() => {
+    if (!data) {
+      return null;
     }
 
-    window.localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  }, [data, ready]);
+    async function mutate(path: string, init: RequestInit) {
+      const response = await fetch(path, init);
 
-  const value = useMemo<AdminStoreValue>(
-    () => ({
+      if (!response.ok) {
+        throw new Error(await readError(response));
+      }
+
+      await reload();
+    }
+
+    return {
       data,
-      updateRequest: (id, patch) => {
-        setData((current) => ({
-          ...current,
-          requests: current.requests.map((request) =>
-            request.id === id ? { ...request, ...patch } : request,
-          ),
-        }));
+      reload,
+      updateRequest: (id, patch) =>
+        mutate(`/api/admin/requests/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        }),
+      uploadDocument: async (requestId, file, kind, note) => {
+        const body = new FormData();
+        body.set("file", file);
+        body.set("kind", kind);
+        body.set("note", note);
+        await mutate(`/api/admin/requests/${requestId}/documents`, {
+          method: "POST",
+          body,
+        });
       },
-      addDocument: (requestId, file) => {
-        setData((current) => ({
-          ...current,
-          requests: current.requests.map((request) => {
-            if (request.id !== requestId) {
-              return request;
-            }
+      removeDocument: (documentId) =>
+        mutate(`/api/admin/files/${documentId}`, { method: "DELETE" }),
+      updateSettings: (patch) =>
+        mutate("/api/admin/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        }),
+      createStaff: (input) =>
+        mutate("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        }),
+      setStaffActive: (id, active) =>
+        mutate(`/api/admin/users/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active }),
+        }),
+      sendPaymentLink: (id, amount) =>
+        mutate(`/api/admin/requests/${id}/payment-link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount }),
+        }),
+      resendPaymentLink: (id) =>
+        mutate(`/api/admin/requests/${id}/payment-link/resend`, { method: "POST" }),
+    };
+  }, [data, reload]);
 
-            const group =
-              request.documents[0]?.group ?? "Uploaded documents";
-            const document: AdminDocument = {
-              id: `doc-${Date.now()}`,
-              filename: file.name.replace(/\.[^.]+$/, ""),
-              size: formatFileSize(file.size),
-              uploadedAt: formatUploadedAt(new Date()),
-              author: "DTA Admin",
-              note: "Uploaded from the admin panel.",
-              group,
-            };
-
-            return {
-              ...request,
-              documents: [document, ...request.documents],
-            };
-          }),
-        }));
-      },
-      removeDocument: (requestId, documentId) => {
-        setData((current) => ({
-          ...current,
-          requests: current.requests.map((request) =>
-            request.id === requestId
-              ? {
-                  ...request,
-                  documents: request.documents.filter(
-                    (document) => document.id !== documentId,
-                  ),
-                }
-              : request,
-          ),
-        }));
-      },
-      updateSettings: (patch) => {
-        setData((current) => ({
-          ...current,
-          settings: { ...current.settings, ...patch },
-        }));
-      },
-    }),
-    [data],
-  );
-
-  if (!ready) {
-    return <div className="admin-app min-h-full flex-1 bg-[#F3F4F6]" />;
+  if (!data || !value) {
+    return (
+      <div className="admin-app min-h-full flex-1 bg-[#F3F4F6] px-6 py-10 text-sm text-[#6B7280]">
+        {error || "Loading admin data…"}
+      </div>
+    );
   }
 
-  return (
-    <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
-  );
+  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }
 
 export function useAdmin() {

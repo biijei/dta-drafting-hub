@@ -16,16 +16,11 @@ export function RequestsView() {
   const requests = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
-    const filtering = needle.length > 0 || status !== "All";
-
     return data.requests.filter((request) => {
-      if (!filtering && !request.featuredOnOverview) {
-        return false;
-      }
-
       const matchesQuery =
         needle.length === 0 ||
-        request.displayId.toLowerCase().includes(needle);
+        request.displayId.toLowerCase().includes(needle) ||
+        request.clientName.toLowerCase().includes(needle);
       const matchesStatus = status === "All" || request.status === status;
 
       return matchesQuery && matchesStatus;

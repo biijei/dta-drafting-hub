@@ -25,30 +25,36 @@ export const processSteps: ProcessStep[] = [
   },
   {
     number: 4,
-    title: "Receive your quote",
+    title: "Review your submission",
     description:
-      "We review your request and prepare a tailored quote. You'll receive the quote directly in your request workspace and by email. You can accept or decline.",
+      "Check the details and files, then submit the request. No payment is taken on this step.",
   },
   {
     number: 5,
-    title: "Payment confirmation",
+    title: "Request confirmation",
     description:
-      "Once you accept the quote, we collect payment securely. A receipt is generated and attached to your request.",
+      "You receive a Request ID by email. Save it with the email on the request. That pair is how you track the request while DTA reviews the files.",
   },
   {
     number: 6,
-    title: "Document preparation",
+    title: "Quoted payment",
     description:
-      "Our specialist begins work on your document. You can track progress in real time from your request workspace.",
+      "DTA sets the price and emails a PayPal link. The same link is on the Payment tab. Work starts after PayPal confirms that payment.",
   },
   {
     number: 7,
+    title: "Document preparation",
+    description:
+      "After payment, a specialist begins work on your document. You can track progress from your request workspace.",
+  },
+  {
+    number: 8,
     title: "Review your draft",
     description:
       "When your document is ready, you'll be notified. Review the draft in your workspace and approve it or request changes.",
   },
   {
-    number: 8,
+    number: 9,
     title: "Approve & download",
     description:
       "Once you're satisfied, approve the final document. Download it directly from your workspace. Your request is marked complete.",

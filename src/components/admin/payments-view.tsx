@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { paymentStats, paymentStatuses } from "@/content/admin";
+import { paymentStatuses } from "@/content/admin";
 import { useAdmin } from "@/lib/admin-store";
 import { FilterMenu } from "./filter-menu";
 import { StatusPill } from "./status-pill";
@@ -15,15 +15,12 @@ export function PaymentsView() {
 
   const payments = useMemo(
     () =>
-      data.payments.filter((payment) => {
-        if (!payment.onPaymentsPage) {
-          return false;
-        }
-
-        return status === "All" || payment.status === status;
-      }),
+      data.payments.filter(
+        (payment) => status === "All" || payment.status === status,
+      ),
     [data.payments, status],
   );
+  const paymentStats = data.paymentSummary;
 
   return (
     <div>

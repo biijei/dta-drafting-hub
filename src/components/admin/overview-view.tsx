@@ -3,7 +3,6 @@
 import { clsx } from "clsx";
 import Image from "next/image";
 import Link from "next/link";
-import { overviewStats } from "@/content/admin";
 import { useAdmin } from "@/lib/admin-store";
 import { StatusPill } from "./status-pill";
 
@@ -55,9 +54,10 @@ function OpenLink({ href }: { href: string }) {
 
 export function OverviewView() {
   const { data } = useAdmin();
-  const recent = data.requests.filter((request) => request.featuredOnOverview);
-  const pending = data.requests.filter((request) => request.pendingRepeats > 0);
-  const payments = data.payments.filter((payment) => payment.onOverview);
+  const recent = data.requests.slice(0, 5);
+  const pending = data.pending;
+  const payments = data.payments.slice(0, 4);
+  const overviewStats = data.stats;
 
   return (
     <div>
@@ -122,7 +122,7 @@ export function OverviewView() {
           </div>
 
           <article className="relative flex h-full flex-col overflow-visible rounded-[20px] bg-[#0C1B4D] p-5 text-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-            <p className="text-sm text-[#D3B48A]">Revenue (AUD)</p>
+            <p className="text-sm text-[#D3B48A]">Revenue (USD)</p>
             <p className="mt-auto pt-8 text-[34px] font-semibold leading-none text-white">
               {overviewStats.revenue}
             </p>
@@ -173,6 +173,9 @@ export function OverviewView() {
               </Link>
             </div>
             <ul>
+              {recent.length === 0 ? (
+                <li className="py-4 text-sm text-[#6B7280]">No paid requests yet.</li>
+              ) : null}
               {recent.map((request) => (
                 <li
                   key={request.id}
@@ -199,30 +202,29 @@ export function OverviewView() {
           <section className={`${card} px-5 py-5`}>
             <h2 className="text-base">Pending Actions</h2>
             <ul className="mt-3 space-y-3">
-              {pending.flatMap((request) =>
-                Array.from({ length: request.pendingRepeats }, (_, index) => (
-                  <li
-                    key={`${request.id}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-[#EEF0F4] px-3 py-3"
+              {pending.length === 0 ? (
+                <li className="text-sm text-[#6B7280]">Nothing is waiting on the team.</li>
+              ) : null}
+              {pending.map((request) => (
+                <li
+                  key={request.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-[#EEF0F4] px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#9CA3AF]">{request.displayId}</p>
+                    <p className="text-sm font-medium text-[#E25555]">
+                      {request.label}
+                    </p>
+                    <p className="text-xs text-[#9CA3AF]">{request.subtitle}</p>
+                  </div>
+                  <Link
+                    href={`/admin/requests/${request.id}`}
+                    className="inline-flex shrink-0 rounded-full border border-[#EEF0F4] bg-[#F8F9FB] px-4 py-1.5 text-xs font-medium text-[#4B5563]"
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs text-[#9CA3AF]">{request.displayId}</p>
-                      <p className="text-sm font-medium text-[#E25555]">
-                        {request.pendingLabel}
-                      </p>
-                      <p className="text-xs text-[#9CA3AF]">
-                        {request.pendingSubtitle}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/admin/requests/${request.id}`}
-                      className="inline-flex shrink-0 rounded-full border border-[#EEF0F4] bg-[#F8F9FB] px-4 py-1.5 text-xs font-medium text-[#4B5563]"
-                    >
-                      View
-                    </Link>
-                  </li>
-                )),
-              )}
+                    View
+                  </Link>
+                </li>
+              ))}
             </ul>
           </section>
 

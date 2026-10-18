@@ -1,29 +1,51 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { readSession, writeSession } from "@/lib/admin-store";
+
+function safeAdminPath(value: string | null) {
+  if (!value || !value.startsWith("/admin/") || value.startsWith("//") || value.includes("://")) {
+    return "/admin";
+  }
+
+  return value;
+}
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const destination = safeAdminPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (readSession()) {
-      router.replace("/admin");
-    }
-  }, [router]);
+    void fetch("/api/admin/me").then((response) => {
+      if (response.ok) {
+        router.replace(destination);
+      }
+    });
+  }, [destination, router]);
 
-  function signIn() {
+  async function signIn() {
     if (!email.trim() || !password.trim()) {
       setError("Enter your email and password.");
       return;
     }
 
-    writeSession(email.trim());
-    router.replace("/admin");
+    const response = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+    const body = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setError(body.error || "Could not sign in.");
+      return;
+    }
+
+    router.replace(destination);
   }
 
   return (
