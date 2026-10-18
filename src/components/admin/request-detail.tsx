@@ -8,6 +8,7 @@ import type { AdminDocument } from "@/content/admin";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dropdown } from "@/components/ui/dropdown";
 import { FileDropzone } from "@/components/ui/file-dropzone";
+import { toast } from "@/components/ui/toast";
 import { downloadStoredFile } from "@/lib/download-file";
 import { useAdmin } from "@/lib/admin-store";
 import { StatusPill } from "./status-pill";
@@ -46,16 +47,12 @@ export function RequestDetail({ id }: { id: string }) {
   const request = data.requests.find((item) => item.id === id);
   const [tab, setTab] = useState<"Overview" | "Document">("Overview");
   const [note, setNote] = useState(request?.internalNote ?? "");
-  const [noteSaved, setNoteSaved] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [kind, setKind] = useState<"draft" | "final">("draft");
   const [reviewNote, setReviewNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState("");
-  const [actionError, setActionError] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [price, setPrice] = useState("");
-  const [priceMessage, setPriceMessage] = useState("");
   const staff = data.staff.filter((person) => person.active);
 
   if (!request) {
@@ -72,67 +69,61 @@ export function RequestDetail({ id }: { id: string }) {
   const current = request;
 
   async function saveNote() {
-    setActionError("");
-    setNoteSaved("");
     setPending("note");
 
     try {
       await updateRequest(current.id, { internalNote: note });
-      setNoteSaved("Note saved.");
+      toast.success("Note saved.");
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not save the note.");
+      toast.error(error instanceof Error ? error.message : "Could not save the note.");
     } finally {
       setPending(null);
     }
   }
 
   async function assign(assigneeId: string) {
-    setActionError("");
     setPending("assign");
 
     try {
       await updateRequest(current.id, { assigneeId: assigneeId || null });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not assign the request.");
+      toast.error(error instanceof Error ? error.message : "Could not assign the request.");
     } finally {
       setPending(null);
     }
   }
 
   async function markInProgress() {
-    setActionError("");
     setPending("status");
 
     try {
       await updateRequest(current.id, { status: "In Progress" });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not update the status.");
+      toast.error(error instanceof Error ? error.message : "Could not update the status.");
     } finally {
       setPending(null);
     }
   }
 
   async function downloadFile(id: string) {
-    setActionError("");
     setPending(`download:${id}`);
 
     try {
       await downloadStoredFile(id);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not download the file.");
+      toast.error(error instanceof Error ? error.message : "Could not download the file.");
     } finally {
       setPending(null);
     }
   }
 
   async function deleteDocument(id: string) {
-    setActionError("");
     setPending(`delete:${id}`);
 
     try {
       await removeDocument(id);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not delete the file.");
+      toast.error(error instanceof Error ? error.message : "Could not delete the file.");
     } finally {
       setPending(null);
     }
@@ -140,12 +131,11 @@ export function RequestDetail({ id }: { id: string }) {
 
   async function submitUpload() {
     if (!file || !reviewNote.trim()) {
-      setUploadError("Choose a file and add a review note.");
+      toast.error("Choose a file and add a review note.");
       return;
     }
 
     setPending("upload");
-    setUploadError("");
 
     try {
       await uploadDocument(current.id, file, kind, reviewNote.trim());
@@ -154,7 +144,7 @@ export function RequestDetail({ id }: { id: string }) {
       setReviewNote("");
       setTab("Document");
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Could not upload the file.");
+      toast.error(error instanceof Error ? error.message : "Could not upload the file.");
     } finally {
       setPending(null);
     }
@@ -168,30 +158,26 @@ export function RequestDetail({ id }: { id: string }) {
   const isOwner = data.profile.role === "owner";
 
   async function generateLink() {
-    setActionError("");
-    setPriceMessage("");
     setPending("generate");
 
     try {
       await sendPaymentLink(current.id, price.trim());
-      setPriceMessage("Payment link emailed.");
+      toast.success("Payment link emailed.");
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not send the payment link.");
+      toast.error(error instanceof Error ? error.message : "Could not send the payment link.");
     } finally {
       setPending(null);
     }
   }
 
   async function resendLink() {
-    setActionError("");
-    setPriceMessage("");
     setPending("resend");
 
     try {
       await resendPaymentLink(current.id);
-      setPriceMessage("Payment link resent.");
+      toast.success("Payment link resent.");
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Could not resend the payment link.");
+      toast.error(error instanceof Error ? error.message : "Could not resend the payment link.");
     } finally {
       setPending(null);
     }
@@ -331,10 +317,7 @@ export function RequestDetail({ id }: { id: string }) {
                 </p>
                 <textarea
                   value={note}
-                  onChange={(event) => {
-                    setNote(event.target.value);
-                    setNoteSaved("");
-                  }}
+                  onChange={(event) => setNote(event.target.value)}
                   placeholder="Add note"
                   rows={5}
                   className="mt-4 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm outline-none placeholder:text-[#C5CAD3] focus:border-[#C9D0DE]"
@@ -348,9 +331,6 @@ export function RequestDetail({ id }: { id: string }) {
                 >
                   {pending === "note" ? "Saving…" : "Save note"}
                 </button>
-                {noteSaved ? (
-                  <p className="mt-3 text-sm text-[#34A35A]">{noteSaved}</p>
-                ) : null}
               </section>
             </div>
 
@@ -400,9 +380,6 @@ export function RequestDetail({ id }: { id: string }) {
                       An owner sets the price and emails the PayPal link.
                     </p>
                   )}
-                  {priceMessage ? (
-                    <p className="mt-3 text-sm text-[#34A35A]">{priceMessage}</p>
-                  ) : null}
                 </section>
               ) : null}
 
@@ -432,7 +409,7 @@ export function RequestDetail({ id }: { id: string }) {
                     disabled={pending !== null}
                     aria-busy={pending === "status"}
                     onClick={() => void markInProgress()}
-                    className="mt-4 flex w-full items-center justify-center rounded-full border border-[#E6E8EE] px-5 py-3 text-sm font-medium disabled:opacity-60"
+                    className="mt-4 flex w-full items-center justify-center rounded-full bg-lime px-5 py-3 text-sm font-medium text-navy transition-colors hover:bg-lime/90 disabled:opacity-60"
                   >
                     {pending === "status" ? "Updating…" : "Mark in progress"}
                   </button>
@@ -453,7 +430,6 @@ export function RequestDetail({ id }: { id: string }) {
                 <div className="mt-4">
                   <label
                     id="assign-to-label"
-                    htmlFor="assign-to"
                     className="block text-sm text-[#6B7280]"
                   >
                     Assign to
@@ -475,9 +451,6 @@ export function RequestDetail({ id }: { id: string }) {
                     ]}
                   />
                 </div>
-                {actionError ? (
-                  <p className="mt-3 text-sm text-[#E25555]">{actionError}</p>
-                ) : null}
                 {uploadOpen ? (
                   <form
                     className="mt-4 space-y-3"
@@ -489,7 +462,6 @@ export function RequestDetail({ id }: { id: string }) {
                     <div>
                       <label
                         id="document-type-label"
-                        htmlFor="document-type"
                         className="block text-sm text-[#6B7280]"
                       >
                         Document type
@@ -526,9 +498,6 @@ export function RequestDetail({ id }: { id: string }) {
                       onAdd={(incoming) => setFile(incoming[0] ?? null)}
                       onRemove={() => setFile(null)}
                     />
-                    {uploadError ? (
-                      <p className="text-sm text-[#E25555]">{uploadError}</p>
-                    ) : null}
                     <button
                       type="submit"
                       disabled={pending !== null}

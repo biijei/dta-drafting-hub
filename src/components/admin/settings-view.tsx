@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "@/components/ui/toast";
 import { useAdmin } from "@/lib/admin-store";
 
 const fieldClass =
@@ -26,12 +27,6 @@ export function SettingsView() {
     email: "",
     password: "",
   });
-  const [businessMessage, setBusinessMessage] = useState("");
-  const [disclaimerMessage, setDisclaimerMessage] = useState("");
-  const [passwordMessage, setPasswordMessage] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [staffMessage, setStaffMessage] = useState("");
-  const [staffError, setStaffError] = useState("");
   const [pending, setPending] = useState<string | null>(null);
 
   return (
@@ -44,14 +39,11 @@ export function SettingsView() {
             onSubmit={(event) => {
               event.preventDefault();
               if (pending) return;
-              setBusinessMessage("");
               setPending("business");
               void updateSettings(business)
-                .then(() => setBusinessMessage("Business information saved."))
+                .then(() => toast.success("Business information saved."))
                 .catch((error: unknown) =>
-                  setBusinessMessage(
-                    error instanceof Error ? error.message : "Could not save.",
-                  ),
+                  toast.error(error instanceof Error ? error.message : "Could not save."),
                 )
                 .finally(() => setPending(null));
             }}
@@ -125,9 +117,6 @@ export function SettingsView() {
             >
               {pending === "business" ? "Saving…" : "Save"}
             </button>
-            {businessMessage ? (
-              <p className="mt-3 text-sm text-[#34A35A]">{businessMessage}</p>
-            ) : null}
           </form>
         ) : null}
 
@@ -137,14 +126,11 @@ export function SettingsView() {
             onSubmit={(event) => {
               event.preventDefault();
               if (pending) return;
-              setDisclaimerMessage("");
               setPending("disclaimer");
               void updateSettings({ disclaimer })
-                .then(() => setDisclaimerMessage("Disclaimer saved."))
+                .then(() => toast.success("Disclaimer saved."))
                 .catch((error: unknown) =>
-                  setDisclaimerMessage(
-                    error instanceof Error ? error.message : "Could not save.",
-                  ),
+                  toast.error(error instanceof Error ? error.message : "Could not save."),
                 )
                 .finally(() => setPending(null));
             }}
@@ -156,10 +142,7 @@ export function SettingsView() {
             </p>
             <textarea
               value={disclaimer}
-              onChange={(event) => {
-                setDisclaimer(event.target.value);
-                setDisclaimerMessage("");
-              }}
+              onChange={(event) => setDisclaimer(event.target.value)}
               rows={7}
               className="mt-4 w-full resize-y rounded-xl border border-[#E8EAF0] bg-[#FCFCFD] px-4 py-3 text-sm leading-relaxed text-[#4B5563] outline-none focus:border-[#C9D0DE]"
             />
@@ -171,9 +154,6 @@ export function SettingsView() {
             >
               {pending === "disclaimer" ? "Saving…" : "Save disclaimer"}
             </button>
-            {disclaimerMessage ? (
-              <p className="mt-3 text-sm text-[#34A35A]">{disclaimerMessage}</p>
-            ) : null}
           </form>
         ) : null}
 
@@ -183,16 +163,14 @@ export function SettingsView() {
             onSubmit={(event) => {
               event.preventDefault();
               if (pending) return;
-              setStaffError("");
-              setStaffMessage("");
               setPending("staff");
               void createStaff(staff)
                 .then(() => {
                   setStaff({ fullName: "", email: "", password: "" });
-                  setStaffMessage("Specialist account created.");
+                  toast.success("Specialist account created.");
                 })
                 .catch((error: unknown) =>
-                  setStaffError(
+                  toast.error(
                     error instanceof Error ? error.message : "Could not create the account.",
                   ),
                 )
@@ -246,10 +224,6 @@ export function SettingsView() {
             >
               {pending === "staff" ? "Creating…" : "Create specialist"}
             </button>
-            {staffError ? <p className="mt-3 text-sm text-[#E25555]">{staffError}</p> : null}
-            {staffMessage ? (
-              <p className="mt-3 text-sm text-[#34A35A]">{staffMessage}</p>
-            ) : null}
             <ul className="mt-5 divide-y divide-[#F3F4F6]">
               {data.staff.map((person) => (
                 <li key={person.id} className="flex items-center justify-between gap-3 py-3">
@@ -267,11 +241,10 @@ export function SettingsView() {
                       aria-busy={pending === `staff-active:${person.id}`}
                       onClick={() => {
                         if (pending) return;
-                        setStaffError("");
                         setPending(`staff-active:${person.id}`);
                         void setStaffActive(person.id, !person.active)
                           .catch((error: unknown) =>
-                            setStaffError(
+                            toast.error(
                               error instanceof Error
                                 ? error.message
                                 : "Could not update the account.",
@@ -298,16 +271,14 @@ export function SettingsView() {
           className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
           onSubmit={(event) => {
             event.preventDefault();
-            setPasswordMessage("");
-            setPasswordError("");
 
             if (!password.current || !password.next || !password.confirm) {
-              setPasswordError("Enter your old password and a new password.");
+              toast.error("Enter your old password and a new password.");
               return;
             }
 
             if (password.next !== password.confirm) {
-              setPasswordError("New password and confirmation do not match.");
+              toast.error("New password and confirmation do not match.");
               return;
             }
 
@@ -321,14 +292,14 @@ export function SettingsView() {
               .then(async (response) => {
                 const body = (await response.json()) as { error?: string };
                 if (!response.ok) {
-                  setPasswordError(body.error || "Could not update the password.");
+                  toast.error(body.error || "Could not update the password.");
                   return;
                 }
 
                 setPassword({ current: "", next: "", confirm: "" });
-                setPasswordMessage("Password updated.");
+                toast.success("Password updated.");
               })
-              .catch(() => setPasswordError("Could not update the password."))
+              .catch(() => toast.error("Could not update the password."))
               .finally(() => setPending(null));
           }}
         >
@@ -389,12 +360,6 @@ export function SettingsView() {
           >
             {pending === "password" ? "Saving…" : "Save password"}
           </button>
-          {passwordError ? (
-            <p className="mt-3 text-sm text-[#E25555]">{passwordError}</p>
-          ) : null}
-          {passwordMessage ? (
-            <p className="mt-3 text-sm text-[#34A35A]">{passwordMessage}</p>
-          ) : null}
         </form>
       </div>
     </div>

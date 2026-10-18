@@ -89,7 +89,6 @@ export function Dropdown({
   const [openUp, setOpenUp] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const suppressClick = useRef(false);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const generatedId = useId();
   const buttonId = id ?? generatedId;
@@ -250,25 +249,8 @@ export function Dropdown({
           }
 
           event.preventDefault();
-          event.currentTarget.focus();
-          suppressClick.current = true;
-          window.setTimeout(() => {
-            suppressClick.current = false;
-          }, 0);
-
-          if (open) {
-            setOpen(false);
-            return;
-          }
-
-          openMenu();
         }}
         onClick={() => {
-          if (suppressClick.current) {
-            suppressClick.current = false;
-            return;
-          }
-
           if (disabled) {
             return;
           }
@@ -334,19 +316,8 @@ export function Dropdown({
                     }
 
                     event.preventDefault();
-                    suppressClick.current = true;
-                    window.setTimeout(() => {
-                      suppressClick.current = false;
-                    }, 0);
-                    commit(option);
                   }}
-                  onClick={() => {
-                    if (suppressClick.current) {
-                      return;
-                    }
-
-                    commit(option);
-                  }}
+                  onClick={() => commit(option)}
                   className={clsx(
                     "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm",
                     option.disabled

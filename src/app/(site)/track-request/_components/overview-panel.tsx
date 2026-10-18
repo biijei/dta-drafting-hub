@@ -23,6 +23,52 @@ const statusFields = (request: TrackedRequest) => [
   },
 ];
 
+const outlineAction =
+  "rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change disabled:opacity-50";
+
+const payAction =
+  "inline-flex rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime";
+
+function OverviewAction({
+  request,
+  onRequestChange,
+}: {
+  request: TrackedRequest;
+  onRequestChange: () => void;
+}) {
+  const awaitingQuote = request.status === "Pending Review";
+  const awaitingPayment = request.status === "Awaiting Payment";
+
+  if (awaitingQuote || awaitingPayment) {
+    if (awaitingPayment && request.paymentUrl) {
+      return (
+        <a href={request.paymentUrl} className={payAction}>
+          Pay with PayPal
+        </a>
+      );
+    }
+
+    return (
+      <button type="button" disabled className={outlineAction}>
+        Pay with PayPal
+      </button>
+    );
+  }
+
+  const finished = request.status === "Approved" || request.status === "Completed";
+
+  return (
+    <button
+      type="button"
+      onClick={onRequestChange}
+      disabled={finished || !request.canRevise}
+      className={outlineAction}
+    >
+      Request change
+    </button>
+  );
+}
+
 export function OverviewPanel({
   request,
   onRequestChange,
@@ -117,14 +163,10 @@ export function OverviewPanel({
                 {pending ? "Approving…" : "Approve document"}
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={onRequestChange}
-              disabled={!request.canRevise}
-              className="rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change disabled:opacity-50"
-            >
-              Request change
-            </button>
+            <OverviewAction
+              request={request}
+              onRequestChange={onRequestChange}
+            />
             <button
               type="button"
               onClick={onViewDocument}

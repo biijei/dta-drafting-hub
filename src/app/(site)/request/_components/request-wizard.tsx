@@ -387,7 +387,7 @@ function ServiceSelect({
 
   return (
     <div>
-      <label id={labelId} htmlFor={selectId} className="block text-sm font-semibold text-ink">
+      <label id={labelId} className="block text-sm font-semibold text-ink">
         Which service do you need?
         <span className="text-red-700"> *</span>
       </label>
@@ -502,7 +502,7 @@ function ServiceSelectField({
 
   return (
     <div>
-      <label id={labelId} htmlFor={inputId} className="block text-sm font-semibold text-ink">
+      <label id={labelId} className="block text-sm font-semibold text-ink">
         {field.label}
         {field.required ? <span className="text-red-700"> *</span> : null}
       </label>
