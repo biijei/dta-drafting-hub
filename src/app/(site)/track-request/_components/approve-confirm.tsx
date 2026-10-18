@@ -30,7 +30,7 @@ export function ApproveConfirm({
       title="Approve this document?"
       description="Approving means you are satisfied with the document and the service. This request will be complete, and no further revision will be accepted."
       icon={
-        <span className="grid size-11 place-items-center rounded-full bg-gold-light text-navy">
+        <span className="grid size-11 place-items-center rounded-full bg-lime text-navy">
           <Check className="size-5" strokeWidth={2.5} aria-hidden />
         </span>
       }
