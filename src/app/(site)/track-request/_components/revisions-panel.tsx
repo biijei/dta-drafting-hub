@@ -1,10 +1,12 @@
 "use client";
 
-import { FileText } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { FileText, MessageSquare } from "lucide-react";
+import { type FormEvent, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileDropzone } from "@/components/ui/file-dropzone";
+import { Modal } from "@/components/ui/modal";
 import type { TrackedRequest } from "@/content/track-request";
+import { downloadStoredFile } from "@/lib/download-file";
 
 type RevisionsPanelProps = {
   request: TrackedRequest;
@@ -16,13 +18,45 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
     group.files.filter((file) => file.kind === "draft"),
   );
   const onlyDraft = drafts.length === 1 ? drafts[0] : null;
+  const canRequest = request.canRevise && drafts.length > 0;
+  const [open, setOpen] = useState(false);
   const [fileId, setFileId] = useState("");
   const [changes, setChanges] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState(false);
   const [pending, setPending] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const targetId = onlyDraft?.id ?? fileId;
+  const reason =
+    drafts.length === 0
+      ? "You can request changes after DTA sends a draft."
+      : "You can request changes when a new draft is ready for review.";
+
+  function close() {
+    if (pending) {
+      return;
+    }
+
+    setOpen(false);
+  }
+
+  async function download(id: string) {
+    setError("");
+    setDownloading(id);
+
+    try {
+      await downloadStoredFile(id);
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Could not download the file.",
+      );
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +68,6 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
     }
 
     if (!targetId || !changes.trim()) {
-      setSubmitted(false);
       setError(
         targetId
           ? "Describe the changes you'd like made."
@@ -58,18 +91,16 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        setSubmitted(false);
         setError(payload.error || "Could not send the revision request.");
         return;
       }
 
-      setSubmitted(true);
+      setOpen(false);
       setChanges("");
       setFiles([]);
       setFileId("");
       await onRefresh();
     } catch {
-      setSubmitted(false);
       setError("Could not send the revision request.");
     } finally {
       setPending(false);
@@ -78,30 +109,103 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-ink">Documents</h2>
-      {drafts.length === 0 ? (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-ink">Revisions</h2>
+          <p className="mt-1 text-sm text-muted">
+            Change requests you have sent for this draft.
+          </p>
+        </div>
+        <div className="sm:text-right">
+          <button
+            ref={buttonRef}
+            type="button"
+            disabled={!canRequest}
+            onClick={() => {
+              setError("");
+              setOpen(true);
+            }}
+            className="rounded-full bg-navy px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy/90 disabled:opacity-50"
+          >
+            Request changes
+          </button>
+          {canRequest ? null : (
+            <p className="mt-2 max-w-xs text-sm text-muted sm:ml-auto">{reason}</p>
+          )}
+        </div>
+      </div>
+
+      {error && !open ? (
+        <p className="mt-4 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {request.revisions.length === 0 ? (
         <article className="mt-4 max-w-3xl rounded-2xl bg-card shadow-sm">
           <EmptyState
-            icon={FileText}
-            title="No draft to revise"
-            description="You can request changes after DTA sends a draft."
+            icon={MessageSquare}
+            title="No revision requests yet"
+            description="Change requests you send will show up here."
           />
         </article>
       ) : (
-        <form
-          onSubmit={(event) => void onSubmit(event)}
-          className="mt-4 max-w-3xl rounded-2xl bg-card px-5 py-6 shadow-sm sm:px-6"
-          noValidate
-        >
-          <h3 className="text-sm font-semibold text-ink">Request Changes</h3>
+        <ul className="mt-4 max-w-3xl space-y-4">
+          {request.revisions.map((revision) => (
+            <li
+              key={revision.id}
+              className="rounded-2xl bg-card px-5 py-5 shadow-sm sm:px-6"
+            >
+              <p className="text-xs text-muted">{revision.createdAt}</p>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                Changes for {revision.targetFilename}
+              </p>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-ink">
+                {revision.note}
+              </p>
+              {revision.attachments.length ? (
+                <ul className="mt-4 space-y-2">
+                  {revision.attachments.map((attachment) => (
+                    <li key={attachment.id}>
+                      <button
+                        type="button"
+                        disabled={downloading !== null}
+                        aria-busy={downloading === attachment.id}
+                        onClick={() => void download(attachment.id)}
+                        className="inline-flex max-w-full items-center gap-2 text-sm font-medium text-navy disabled:opacity-60"
+                      >
+                        <FileText className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="truncate">
+                          {downloading === attachment.id
+                            ? "Downloading…"
+                            : attachment.filename}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
 
+      <Modal
+        open={open}
+        onClose={close}
+        title="Request changes"
+        returnFocusRef={buttonRef}
+        tone="site"
+        dismissible={!pending}
+      >
+        <form onSubmit={(event) => void onSubmit(event)} noValidate>
           {onlyDraft ? (
-            <p className="mt-4 text-sm text-muted">
+            <p className="text-sm text-muted">
               Changes apply to{" "}
               <span className="font-medium text-ink">{onlyDraft.filename}</span>.
             </p>
           ) : (
-            <fieldset className="mt-4">
+            <fieldset>
               <legend className="text-sm font-medium text-ink">
                 Which draft should we change?
               </legend>
@@ -142,17 +246,16 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
           />
 
           <p className="mt-5 text-sm font-medium text-ink">Supporting documents</p>
-          <p className="mt-1 text-sm text-muted">Optional. Add files that show the change you want.</p>
+          <p className="mt-1 text-sm text-muted">
+            Optional. Add files that show the change you want.
+          </p>
           <div className="mt-3">
             <FileDropzone
               files={files}
               onAdd={(incoming) =>
                 setFiles((current) => {
                   const names = new Set(current.map((file) => file.name));
-                  return [
-                    ...current,
-                    ...incoming.filter((file) => !names.has(file.name)),
-                  ];
+                  return [...current, ...incoming.filter((file) => !names.has(file.name))];
                 })
               }
               onRemove={(name) =>
@@ -166,16 +269,11 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
               {error}
             </p>
           ) : null}
-          {submitted ? (
-            <p className="mt-4 text-sm font-medium text-navy" role="status">
-              Your change request has been sent.
-            </p>
-          ) : null}
 
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex justify-end">
             <button
               type="submit"
-              disabled={!request.canRevise || pending}
+              disabled={!request.canRevise || pending || !targetId || !changes.trim()}
               aria-busy={pending}
               className="rounded-full bg-navy px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy/90 disabled:opacity-50"
             >
@@ -183,7 +281,7 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
             </button>
           </div>
         </form>
-      )}
+      </Modal>
     </section>
   );
 }

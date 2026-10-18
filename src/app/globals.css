@@ -56,8 +56,22 @@ body {
   }
 }
 
+.modal-fade {
+  animation: modal-fade 0.2s ease;
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track {
+  .marquee-track,
+  .modal-fade {
     animation: none;
   }
 }

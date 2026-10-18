@@ -20,10 +20,11 @@ export async function loadTracked(publicId: string) {
     return { status: 404 as const, request: null };
   }
 
-  const [filesRes, activityRes, paymentRes, assigneeRes] = await Promise.all([
+  const [filesRes, activityRes, paymentRes, revisionsRes, assigneeRes] = await Promise.all([
     supabase.from("files").select("*").eq("request_id", request.id),
     supabase.from("activity").select("id, message, created_at").eq("request_id", request.id),
     supabase.from("payments").select("*").eq("request_id", request.id).maybeSingle(),
+    supabase.from("revisions").select("*").eq("request_id", request.id),
     request.assignee_id
       ? supabase
           .from("profiles")
@@ -41,6 +42,7 @@ export async function loadTracked(publicId: string) {
       activityRes.data ?? [],
       paymentRes.data ?? undefined,
       assigneeRes.data?.full_name ?? null,
+      revisionsRes.data ?? [],
     ),
     row: request as RequestRow,
   };

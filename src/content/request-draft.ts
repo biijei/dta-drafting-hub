@@ -225,6 +225,7 @@ export function buildTrackedRequest(
     },
     paymentUrl: null,
     activity: [],
+    revisions: [],
     canApprove: false,
     canRevise: false,
   };

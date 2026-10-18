@@ -1,10 +1,11 @@
 "use client";
 
 import { FileText } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { versionLabel, type TrackedRequest } from "@/content/track-request";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadStoredFile } from "@/lib/download-file";
+import { ApproveConfirm } from "./approve-confirm";
 
 type DocumentPanelProps = {
   request: TrackedRequest;
@@ -15,8 +16,23 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const approveButtonRef = useRef<HTMLButtonElement>(null);
+  const approving = pending === "approve";
+
+  function openConfirm() {
+    if (pending !== null) return;
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  function closeConfirm() {
+    if (approving) return;
+    setConfirmOpen(false);
+  }
 
   async function approve() {
+    if (pending !== null) return;
     setError("");
     setPending("approve");
 
@@ -33,6 +49,7 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
 
       setMessage("Document approved.");
       await onRefresh();
+      setConfirmOpen(false);
     } catch {
       setError("Could not approve the document.");
     } finally {
@@ -63,8 +80,9 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
         <h2 className="text-base font-semibold text-ink">Documents</h2>
         {request.canApprove ? (
           <button
+            ref={approveButtonRef}
             type="button"
-            onClick={() => void approve()}
+            onClick={openConfirm}
             disabled={pending !== null}
             aria-busy={pending === "approve"}
             className="rounded-full bg-navy px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
@@ -75,6 +93,14 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
       </div>
       {message ? <p className="mt-3 text-sm font-medium text-navy">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      <ApproveConfirm
+        open={confirmOpen}
+        pending={approving}
+        error={confirmOpen ? error : ""}
+        onClose={closeConfirm}
+        onConfirm={() => void approve()}
+        returnFocusRef={approveButtonRef}
+      />
       <div className="mt-4 space-y-4">
         {request.documents.length === 0 ? (
           <article className="rounded-2xl bg-card shadow-sm">

@@ -1,13 +1,14 @@
 "use client";
 
 import { clsx } from "clsx";
-import { FileText, MessageSquare } from "lucide-react";
+import { FileText, MessageSquare, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { AdminDocument } from "@/content/admin";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dropdown } from "@/components/ui/dropdown";
 import { FileDropzone } from "@/components/ui/file-dropzone";
+import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
 import { downloadStoredFile } from "@/lib/download-file";
 import { useAdmin } from "@/lib/admin-store";
@@ -48,10 +49,14 @@ export function RequestDetail({ id }: { id: string }) {
   const [tab, setTab] = useState<"Overview" | "Document">("Overview");
   const [note, setNote] = useState(request?.internalNote ?? "");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
   const [kind, setKind] = useState<"draft" | "final">("draft");
   const [reviewNote, setReviewNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [draftToDelete, setDraftToDelete] = useState<{ id: string; filename: string } | null>(
+    null,
+  );
   const [price, setPrice] = useState("");
   const staff = data.staff.filter((person) => person.active);
 
@@ -117,16 +122,33 @@ export function RequestDetail({ id }: { id: string }) {
     }
   }
 
-  async function deleteDocument(id: string) {
-    setPending(`delete:${id}`);
+  async function deleteDocument(fileId: string) {
+    setPending(`delete:${fileId}`);
 
     try {
-      await removeDocument(id);
+      await removeDocument(fileId);
+      setDraftToDelete(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not delete the file.");
     } finally {
       setPending(null);
     }
+  }
+
+  function closeDelete() {
+    if (draftToDelete && pending === `delete:${draftToDelete.id}`) {
+      return;
+    }
+
+    setDraftToDelete(null);
+  }
+
+  function closeUpload() {
+    if (pending === "upload") {
+      return;
+    }
+
+    setUploadOpen(false);
   }
 
   async function submitUpload() {
@@ -416,6 +438,7 @@ export function RequestDetail({ id }: { id: string }) {
                 ) : null}
                 {awaitingPrice ? null : (
                 <button
+                  ref={uploadButtonRef}
                   type="button"
                   disabled={pending !== null}
                   onClick={() => {
@@ -451,63 +474,6 @@ export function RequestDetail({ id }: { id: string }) {
                     ]}
                   />
                 </div>
-                {uploadOpen ? (
-                  <form
-                    className="mt-4 space-y-3"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void submitUpload();
-                    }}
-                  >
-                    <div>
-                      <label
-                        id="document-type-label"
-                        className="block text-sm text-[#6B7280]"
-                      >
-                        Document type
-                      </label>
-                      <Dropdown
-                        id="document-type"
-                        labelledBy="document-type-label"
-                        className="mt-2"
-                        value={kind}
-                        onChange={(next) => setKind(next === "final" ? "final" : "draft")}
-                        options={[
-                          { value: "draft", label: "Draft for client review" },
-                          {
-                            value: "final",
-                            label: "Final document",
-                            disabled: request.status !== "Approved",
-                          },
-                        ]}
-                      />
-                    </div>
-                    <label className="block text-sm text-[#6B7280]">
-                      Review note
-                      <textarea
-                        value={reviewNote}
-                        onChange={(event) => setReviewNote(event.target.value)}
-                        rows={3}
-                        placeholder="What should the client know about this file?"
-                        className="mt-2 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm text-[#121826] outline-none"
-                      />
-                    </label>
-                    <FileDropzone
-                      files={file ? [{ name: file.name }] : []}
-                      multiple={false}
-                      onAdd={(incoming) => setFile(incoming[0] ?? null)}
-                      onRemove={() => setFile(null)}
-                    />
-                    <button
-                      type="submit"
-                      disabled={pending !== null}
-                      aria-busy={pending === "upload"}
-                      className="inline-flex rounded-full bg-[#0C1B4D] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-                    >
-                      {pending === "upload" ? "Uploading…" : "Send to client"}
-                    </button>
-                  </form>
-                ) : null}
               </section>
             </div>
           </div>
@@ -557,15 +523,16 @@ export function RequestDetail({ id }: { id: string }) {
                             >
                               {pending === `download:${item.id}` ? "Downloading…" : "Download"}
                             </button>
-                            {item.kind === "draft" ? (
+                            {isOwner && item.kind === "draft" ? (
                               <button
                                 type="button"
                                 disabled={pending !== null}
-                                aria-busy={pending === `delete:${item.id}`}
-                                onClick={() => void deleteDocument(item.id)}
-                                className="text-sm text-[#374151] disabled:opacity-60"
+                                onClick={() =>
+                                  setDraftToDelete({ id: item.id, filename: item.filename })
+                                }
+                                className="text-sm font-medium text-[#E25555] disabled:opacity-60"
                               >
-                                {pending === `delete:${item.id}` ? "Deleting…" : "Delete"}
+                                Delete
                               </button>
                             ) : null}
                           </div>
@@ -579,6 +546,106 @@ export function RequestDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+      <Modal
+        open={uploadOpen}
+        onClose={closeUpload}
+        title="Upload document"
+        returnFocusRef={uploadButtonRef}
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitUpload();
+          }}
+        >
+          <div>
+            <label id="document-type-label" className="block text-sm text-[#6B7280]">
+              Document type
+            </label>
+            <Dropdown
+              id="document-type"
+              labelledBy="document-type-label"
+              className="mt-2"
+              value={kind}
+              onChange={(next) => setKind(next === "final" ? "final" : "draft")}
+              options={[
+                { value: "draft", label: "Draft for client review" },
+                {
+                  value: "final",
+                  label: "Final document",
+                  disabled: request.status !== "Approved",
+                },
+              ]}
+            />
+          </div>
+          <label className="block text-sm text-[#6B7280]">
+            Review note
+            <textarea
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+              rows={3}
+              placeholder="What should the client know about this file?"
+              className="mt-2 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm text-[#121826] outline-none"
+            />
+          </label>
+          <FileDropzone
+            files={file ? [{ name: file.name }] : []}
+            multiple={false}
+            onAdd={(incoming) => setFile(incoming[0] ?? null)}
+            onRemove={() => setFile(null)}
+          />
+          <button
+            type="submit"
+            disabled={!file || pending === "upload"}
+            aria-busy={pending === "upload"}
+            className="inline-flex rounded-full bg-[#0C1B4D] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {pending === "upload" ? "Uploading…" : "Send to client"}
+          </button>
+        </form>
+      </Modal>
+      <Modal
+        open={draftToDelete !== null}
+        onClose={closeDelete}
+        title="Delete this draft?"
+        description={
+          draftToDelete
+            ? `${draftToDelete.filename} will be removed from this request. The client will no longer be able to download it.`
+            : undefined
+        }
+        icon={
+          <span className="grid size-11 place-items-center rounded-full bg-[#FDECEC] text-[#E25555]">
+            <Trash2 className="size-5" aria-hidden />
+          </span>
+        }
+      >
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={draftToDelete !== null && pending === `delete:${draftToDelete.id}`}
+            onClick={closeDelete}
+            className="inline-flex rounded-full border border-[#E6E8EE] px-5 py-2.5 text-sm font-medium text-[#374151] disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={draftToDelete === null || pending === `delete:${draftToDelete.id}`}
+            aria-busy={draftToDelete !== null && pending === `delete:${draftToDelete.id}`}
+            onClick={() => {
+              if (draftToDelete) {
+                void deleteDocument(draftToDelete.id);
+              }
+            }}
+            className="inline-flex rounded-full bg-[#E25555] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {draftToDelete !== null && pending === `delete:${draftToDelete.id}`
+              ? "Deleting…"
+              : "Delete"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

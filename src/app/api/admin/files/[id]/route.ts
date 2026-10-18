@@ -13,6 +13,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return jsonError("Sign in required.", 401);
     }
 
+    if (profile.role !== "owner") {
+      return jsonError("Only an owner can delete a file.", 403);
+    }
+
     const { id } = await context.params;
     const supabase = createServiceClient();
     const { data: file } = await supabase

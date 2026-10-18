@@ -1,8 +1,9 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TrackedRequest } from "@/content/track-request";
+import { ApproveConfirm } from "./approve-confirm";
 
 type OverviewPanelProps = {
   request: TrackedRequest;
@@ -78,6 +79,19 @@ export function OverviewPanel({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const approveButtonRef = useRef<HTMLButtonElement>(null);
+
+  function openConfirm() {
+    if (pending) return;
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  function closeConfirm() {
+    if (pending) return;
+    setConfirmOpen(false);
+  }
 
   async function approve() {
     if (pending) return;
@@ -97,6 +111,7 @@ export function OverviewPanel({
 
       setMessage("Document approved.");
       await onRefresh();
+      setConfirmOpen(false);
     } catch {
       setError("Could not approve the document.");
     } finally {
@@ -105,6 +120,7 @@ export function OverviewPanel({
   }
 
   return (
+    <>
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
       <div className="space-y-4">
         <article className="rounded-2xl border border-line bg-card px-6 py-6">
@@ -154,8 +170,9 @@ export function OverviewPanel({
           <div className="mt-5 flex flex-wrap gap-3">
             {request.canApprove ? (
               <button
+                ref={approveButtonRef}
                 type="button"
-                onClick={() => void approve()}
+                onClick={openConfirm}
                 disabled={pending}
                 aria-busy={pending}
                 className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90 disabled:opacity-60"
@@ -208,5 +225,14 @@ export function OverviewPanel({
         </ol>
       </article>
     </div>
+    <ApproveConfirm
+      open={confirmOpen}
+      pending={pending}
+      error={error}
+      onClose={closeConfirm}
+      onConfirm={() => void approve()}
+      returnFocusRef={approveButtonRef}
+    />
+    </>
   );
 }

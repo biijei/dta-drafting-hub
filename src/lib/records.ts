@@ -402,8 +402,32 @@ export function toTrackedRequest(
   activity: { id: string; message: string; created_at: string }[],
   payment: PaymentRow | undefined,
   assigneeName: string | null,
+  revisions: RevisionRow[],
 ): TrackedRequest {
   const mine = files.filter((file) => file.request_id === request.id);
+  const revisionViews = revisions
+    .filter((revision) => revision.request_id === request.id)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+    .map((revision) => {
+      const target = mine.find((file) => file.id === revision.target_file_id);
+      const attachments = mine.filter(
+        (file) => file.kind === "revision" && file.revision_id === revision.id,
+      );
+
+      return {
+        id: revision.id,
+        note: revision.note,
+        createdAt: stamp(revision.created_at),
+        targetFilename: target?.filename ?? "Draft",
+        attachments: attachments.map((file) => ({
+          id: file.id,
+          filename: file.filename,
+        })),
+      };
+    });
   const groups = new Map<string, DocumentFile[]>();
 
   for (const file of mine) {
@@ -439,7 +463,7 @@ export function toTrackedRequest(
     reviewNotice: reviewNotice(request.status),
     process: processFor(
       request.status,
-      mine.some((file) => file.kind === "revision"),
+      revisionViews.length > 0 || mine.some((file) => file.kind === "revision"),
     ),
     documents,
     payment: {
@@ -461,6 +485,7 @@ export function toTrackedRequest(
         message: item.message,
         at: stamp(item.created_at),
       })),
+    revisions: revisionViews,
     canApprove: request.status === "Awaiting Your Review",
     canRevise: request.status === "Awaiting Your Review",
   };

@@ -35,6 +35,14 @@ export type ProcessStep = {
   complete: boolean;
 };
 
+export type TrackedRevision = {
+  id: string;
+  note: string;
+  createdAt: string;
+  targetFilename: string;
+  attachments: { id: string; filename: string }[];
+};
+
 export type TrackedRequest = {
   id: string;
   title: string;
@@ -57,6 +65,7 @@ export type TrackedRequest = {
   };
   paymentUrl: string | null;
   activity: ActivityItem[];
+  revisions: TrackedRevision[];
   canApprove: boolean;
   canRevise: boolean;
 };
@@ -119,6 +128,7 @@ const sampleRequest: TrackedRequest = {
   },
   paymentUrl: null,
   activity: [],
+  revisions: [],
   canApprove: true,
   canRevise: true,
 };
