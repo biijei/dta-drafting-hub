@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { clsx } from "clsx";
-import { CloudUpload, FileCheck, Info, X } from "lucide-react";
+import { CloudUpload, Copy, FileCheck, Info, X } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
 import { useForm, type Resolver } from "react-hook-form";
@@ -924,6 +924,7 @@ function ConfirmationStep({
   confirmation: Confirmation;
   onHome: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const rows = [
     ["Service", confirmation.title],
     ["Status", "Pending review"],
@@ -932,47 +933,89 @@ function ConfirmationStep({
     ["Next step", "Watch for the payment email"],
   ];
 
+  async function copyRequestId() {
+    try {
+      await navigator.clipboard.writeText(confirmation.id);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center px-4 py-16 text-center">
-      <FileCheck className="h-12 w-12 text-navy" strokeWidth={1.5} aria-hidden />
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-ink">
-        Request Submitted Successfully
-      </h1>
-      <p className="mt-3 max-w-md text-sm leading-6 text-muted">
-        We received your request. DTA will review the files and email a PayPal
-        link for the quoted amount. Please save your Request ID.
-      </p>
-      <div className="mt-8 w-full rounded-2xl bg-navy-wash px-6 py-6">
-        <p className="text-sm text-muted">Your Request ID</p>
-        <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">
-          {confirmation.id}
+    <section className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
+      <div className="overflow-hidden rounded-[1.75rem] bg-[radial-gradient(120%_90%_at_50%_0%,#24367f_0%,#0d1b4b_46%,#070f2c_100%)] px-5 py-10 text-center sm:px-10 sm:py-14">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-lime text-navy ring-4 ring-violet/50">
+          <FileCheck className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+        </span>
+        <h1 className="mt-6 text-3xl font-extrabold leading-none tracking-tight sm:text-4xl">
+          <span className="block text-lime">Request submitted</span>
+          <span className="mt-2 block text-white">successfully</span>
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-gold">
+          We received your request. DTA will review the files and email a PayPal
+          link for the quoted amount. Please save your Request ID.
         </p>
-      </div>
-      <dl className="mt-6 w-full rounded-2xl border border-line px-5 py-4 text-left text-sm">
-        {rows.map(([label, value]) => (
-          <div
-            key={label}
-            className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-b-0"
-          >
-            <dt className="text-muted">{label}</dt>
-            <dd className="font-semibold text-ink">{value}</dd>
+        <div className="mx-auto mt-8 max-w-lg rounded-2xl bg-white/10 px-5 py-6 sm:px-6">
+          <p className="text-sm text-gold">Your Request ID</p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              {confirmation.id}
+            </p>
+            <button
+              type="button"
+              onClick={() => void copyRequestId()}
+              aria-label="Copy request ID"
+              className="group relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-lime hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+            >
+              <Copy className="h-4 w-4" aria-hidden="true" />
+              <span
+                role="status"
+                className={clsx(
+                  "pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium whitespace-nowrap text-navy opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+                  copied && "opacity-100",
+                )}
+              >
+                {copied ? "Copied" : "Copy request ID"}
+              </span>
+            </button>
           </div>
-        ))}
-      </dl>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link
-          href={`/track-request/${confirmation.id}`}
-          className="rounded-full bg-navy px-5 py-2.5 text-sm font-medium text-white hover:bg-navy/90"
-        >
-          View request workspace
-        </Link>
-        <Link
-          href="/"
-          onClick={onHome}
-          className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-ink hover:border-navy"
-        >
-          Go home
-        </Link>
+        </div>
+        <dl className="mx-auto mt-6 max-w-lg rounded-2xl bg-white px-5 py-2 text-left text-sm">
+          {rows.map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-b-0"
+            >
+              <dt className="text-muted">{label}</dt>
+              <dd className="text-right font-semibold text-ink">
+                {label === "Status" ? (
+                  <span className="inline-flex rounded-full bg-lime px-3 py-1 text-xs font-semibold text-navy">
+                    {value}
+                  </span>
+                ) : (
+                  value
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href={`/track-request/${confirmation.id}`}
+            className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+          >
+            View request workspace
+          </Link>
+          <Link
+            href="/"
+            onClick={onHome}
+            className="rounded-full border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
+          >
+            Go home
+          </Link>
+        </div>
       </div>
     </section>
   );
