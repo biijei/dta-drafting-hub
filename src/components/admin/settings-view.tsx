@@ -32,6 +32,7 @@ export function SettingsView() {
   const [passwordError, setPasswordError] = useState("");
   const [staffMessage, setStaffMessage] = useState("");
   const [staffError, setStaffError] = useState("");
+  const [pending, setPending] = useState<string | null>(null);
 
   return (
     <div>
@@ -42,14 +43,17 @@ export function SettingsView() {
             className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
             onSubmit={(event) => {
               event.preventDefault();
+              if (pending) return;
               setBusinessMessage("");
+              setPending("business");
               void updateSettings(business)
                 .then(() => setBusinessMessage("Business information saved."))
                 .catch((error: unknown) =>
                   setBusinessMessage(
                     error instanceof Error ? error.message : "Could not save.",
                   ),
-                );
+                )
+                .finally(() => setPending(null));
             }}
           >
             <h2 className="text-base">Business Information</h2>
@@ -115,9 +119,11 @@ export function SettingsView() {
             </label>
             <button
               type="submit"
-              className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white"
+              disabled={pending !== null}
+              aria-busy={pending === "business"}
+              className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
-              Save
+              {pending === "business" ? "Saving…" : "Save"}
             </button>
             {businessMessage ? (
               <p className="mt-3 text-sm text-[#34A35A]">{businessMessage}</p>
@@ -130,14 +136,17 @@ export function SettingsView() {
             className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
             onSubmit={(event) => {
               event.preventDefault();
+              if (pending) return;
               setDisclaimerMessage("");
+              setPending("disclaimer");
               void updateSettings({ disclaimer })
                 .then(() => setDisclaimerMessage("Disclaimer saved."))
                 .catch((error: unknown) =>
                   setDisclaimerMessage(
                     error instanceof Error ? error.message : "Could not save.",
                   ),
-                );
+                )
+                .finally(() => setPending(null));
             }}
           >
             <h2 className="text-base">Legal Disclaimer</h2>
@@ -156,9 +165,11 @@ export function SettingsView() {
             />
             <button
               type="submit"
-              className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white"
+              disabled={pending !== null}
+              aria-busy={pending === "disclaimer"}
+              className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
-              Save disclaimer
+              {pending === "disclaimer" ? "Saving…" : "Save disclaimer"}
             </button>
             {disclaimerMessage ? (
               <p className="mt-3 text-sm text-[#34A35A]">{disclaimerMessage}</p>
@@ -171,8 +182,10 @@ export function SettingsView() {
             className="rounded-[20px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6"
             onSubmit={(event) => {
               event.preventDefault();
+              if (pending) return;
               setStaffError("");
               setStaffMessage("");
+              setPending("staff");
               void createStaff(staff)
                 .then(() => {
                   setStaff({ fullName: "", email: "", password: "" });
@@ -182,7 +195,8 @@ export function SettingsView() {
                   setStaffError(
                     error instanceof Error ? error.message : "Could not create the account.",
                   ),
-                );
+                )
+                .finally(() => setPending(null));
             }}
           >
             <h2 className="text-base">Team</h2>
@@ -226,9 +240,11 @@ export function SettingsView() {
             </label>
             <button
               type="submit"
-              className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white"
+              disabled={pending !== null}
+              aria-busy={pending === "staff"}
+              className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
-              Create specialist
+              {pending === "staff" ? "Creating…" : "Create specialist"}
             </button>
             {staffError ? <p className="mt-3 text-sm text-[#E25555]">{staffError}</p> : null}
             {staffMessage ? (
@@ -247,10 +263,29 @@ export function SettingsView() {
                   {person.role === "specialist" ? (
                     <button
                       type="button"
-                      onClick={() => void setStaffActive(person.id, !person.active)}
-                      className="shrink-0 text-sm text-[#374151]"
+                      disabled={pending !== null}
+                      aria-busy={pending === `staff-active:${person.id}`}
+                      onClick={() => {
+                        if (pending) return;
+                        setStaffError("");
+                        setPending(`staff-active:${person.id}`);
+                        void setStaffActive(person.id, !person.active)
+                          .catch((error: unknown) =>
+                            setStaffError(
+                              error instanceof Error
+                                ? error.message
+                                : "Could not update the account.",
+                            ),
+                          )
+                          .finally(() => setPending(null));
+                      }}
+                      className="shrink-0 text-sm text-[#374151] disabled:opacity-60"
                     >
-                      {person.active ? "Deactivate" : "Activate"}
+                      {pending === `staff-active:${person.id}`
+                        ? "Updating…"
+                        : person.active
+                          ? "Deactivate"
+                          : "Activate"}
                     </button>
                   ) : null}
                 </li>
@@ -276,6 +311,8 @@ export function SettingsView() {
               return;
             }
 
+            if (pending) return;
+            setPending("password");
             void fetch("/api/admin/password", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -291,7 +328,8 @@ export function SettingsView() {
                 setPassword({ current: "", next: "", confirm: "" });
                 setPasswordMessage("Password updated.");
               })
-              .catch(() => setPasswordError("Could not update the password."));
+              .catch(() => setPasswordError("Could not update the password."))
+              .finally(() => setPending(null));
           }}
         >
           <h2 className="text-base">Password</h2>
@@ -345,9 +383,11 @@ export function SettingsView() {
           </label>
           <button
             type="submit"
-            className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white"
+            disabled={pending !== null}
+            aria-busy={pending === "password"}
+            className="mt-5 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
           >
-            Save password
+            {pending === "password" ? "Saving…" : "Save password"}
           </button>
           {passwordError ? (
             <p className="mt-3 text-sm text-[#E25555]">{passwordError}</p>

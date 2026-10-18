@@ -11,7 +11,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const supabase = createServiceClient();
   const { data: file } = await supabase
     .from("files")
-    .select("id, request_id, storage_path")
+    .select("id, request_id, storage_path, filename")
     .eq("id", id)
     .maybeSingle();
 
@@ -30,7 +30,9 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data, error } = await supabase.storage
     .from(bucket)
-    .createSignedUrl(file.storage_path, 60);
+    .createSignedUrl(file.storage_path, 60, {
+      download: file.filename || true,
+    });
 
   if (error || !data?.signedUrl) {
     return jsonError("Could not prepare the download.", 500);

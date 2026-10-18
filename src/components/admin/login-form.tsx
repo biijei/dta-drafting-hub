@@ -18,6 +18,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     void fetch("/api/admin/me").then((response) => {
@@ -28,24 +29,35 @@ export function LoginForm() {
   }, [destination, router]);
 
   async function signIn() {
+    if (pending) return;
+
     if (!email.trim() || !password.trim()) {
       setError("Enter your email and password.");
       return;
     }
 
-    const response = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), password }),
-    });
-    const body = (await response.json()) as { error?: string };
+    setError("");
+    setPending(true);
 
-    if (!response.ok) {
-      setError(body.error || "Could not sign in.");
-      return;
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(body.error || "Could not sign in.");
+        setPending(false);
+        return;
+      }
+
+      router.replace(destination);
+    } catch {
+      setError("Could not sign in.");
+      setPending(false);
     }
-
-    router.replace(destination);
   }
 
   return (
@@ -102,9 +114,11 @@ export function LoginForm() {
             <button
               type="button"
               onClick={signIn}
-              className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white"
+              disabled={pending}
+              aria-busy={pending}
+              className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
-              Login
+              {pending ? "Signing in…" : "Login"}
             </button>
           </div>
         </form>

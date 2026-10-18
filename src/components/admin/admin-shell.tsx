@@ -87,6 +87,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const { data } = useAdmin();
   const name = data.profile.name;
 
@@ -101,6 +102,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [accountOpen]);
 
   function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
     void fetch("/api/admin/logout", { method: "POST" }).finally(() => {
       router.replace("/admin/login");
     });
@@ -157,7 +160,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               onClick={() => setAccountOpen((current) => !current)}
               className="inline-flex items-center gap-2 rounded-full bg-[#F4F6FB] py-1 pl-1 pr-3"
             >
-              <span className="grid size-8 place-items-center rounded-full bg-[#3B82F6] text-white">
+              <span className="grid size-8 place-items-center rounded-full bg-lime text-navy">
                 <UserRound className="size-4" />
               </span>
               <span className="hidden max-w-[9rem] truncate text-sm font-medium text-[#1F2937] sm:inline-block">
@@ -174,9 +177,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   role="menuitem"
                   onClick={signOut}
-                  className="flex w-full px-4 py-2 text-left text-sm text-[#374151] hover:bg-[#F8F9FC]"
+                  disabled={signingOut}
+                  aria-busy={signingOut}
+                  className="flex w-full px-4 py-2 text-left text-sm text-[#374151] hover:bg-[#F8F9FC] disabled:opacity-60"
                 >
-                  Sign out
+                  {signingOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
             ) : null}

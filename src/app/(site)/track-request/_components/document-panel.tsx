@@ -3,6 +3,7 @@
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { versionLabel, type TrackedRequest } from "@/content/track-request";
+import { EmptyState } from "@/components/ui/empty-state";
 import { downloadStoredFile } from "@/lib/download-file";
 
 type DocumentPanelProps = {
@@ -13,21 +14,47 @@ type DocumentPanelProps = {
 export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState<string | null>(null);
 
   async function approve() {
     setError("");
-    const response = await fetch(`/api/track/requests/${request.id}/approve`, {
-      method: "POST",
-    });
-    const body = (await response.json()) as { error?: string };
+    setPending("approve");
 
-    if (!response.ok) {
-      setError(body.error || "Could not approve the document.");
-      return;
+    try {
+      const response = await fetch(`/api/track/requests/${request.id}/approve`, {
+        method: "POST",
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(body.error || "Could not approve the document.");
+        return;
+      }
+
+      setMessage("Document approved.");
+      await onRefresh();
+    } catch {
+      setError("Could not approve the document.");
+    } finally {
+      setPending(null);
     }
+  }
 
-    setMessage("Document approved.");
-    await onRefresh();
+  async function download(id: string) {
+    setError("");
+    setPending(`download:${id}`);
+
+    try {
+      await downloadStoredFile(id);
+    } catch (downloadError: unknown) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Could not download the file.",
+      );
+    } finally {
+      setPending(null);
+    }
   }
 
   return (
@@ -38,9 +65,11 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
           <button
             type="button"
             onClick={() => void approve()}
-            className="rounded-full bg-navy px-5 py-2 text-sm font-medium text-white"
+            disabled={pending !== null}
+            aria-busy={pending === "approve"}
+            className="rounded-full bg-navy px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            Approve draft
+            {pending === "approve" ? "Approving…" : "Approve draft"}
           </button>
         ) : null}
       </div>
@@ -48,8 +77,12 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       <div className="mt-4 space-y-4">
         {request.documents.length === 0 ? (
-          <article className="rounded-2xl bg-card px-5 py-6 text-sm text-muted shadow-sm">
-            Documents will appear here after DTA uploads a draft.
+          <article className="rounded-2xl bg-card shadow-sm">
+            <EmptyState
+              icon={FileText}
+              title="No documents yet"
+              description="Documents will appear here after DTA uploads a draft."
+            />
           </article>
         ) : null}
         {request.documents.map((group, index) => (
@@ -87,18 +120,12 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      void downloadStoredFile(file.id).catch((downloadError: unknown) =>
-                        setError(
-                          downloadError instanceof Error
-                            ? downloadError.message
-                            : "Could not download the file.",
-                        ),
-                      )
-                    }
-                    className="shrink-0 self-start rounded-full border border-line px-4 py-1.5 text-sm text-ink transition-colors hover:border-navy hover:text-navy sm:self-center"
+                    onClick={() => void download(file.id)}
+                    disabled={pending !== null}
+                    aria-busy={pending === `download:${file.id}`}
+                    className="shrink-0 self-start rounded-full border border-line px-4 py-1.5 text-sm text-ink transition-colors hover:border-navy hover:text-navy disabled:opacity-60 sm:self-center"
                   >
-                    Download
+                    {pending === `download:${file.id}` ? "Downloading…" : "Download"}
                   </button>
                 </li>
               ))}

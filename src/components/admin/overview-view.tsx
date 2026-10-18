@@ -1,8 +1,10 @@
 "use client";
 
 import { clsx } from "clsx";
+import { ClipboardList, Inbox } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAdmin } from "@/lib/admin-store";
 import { StatusPill } from "./status-pill";
 
@@ -174,7 +176,13 @@ export function OverviewView() {
             </div>
             <ul>
               {recent.length === 0 ? (
-                <li className="py-4 text-sm text-[#6B7280]">No paid requests yet.</li>
+                <li>
+                  <EmptyState
+                    icon={Inbox}
+                    title="No paid requests yet"
+                    description="Paid requests will show up here."
+                  />
+                </li>
               ) : null}
               {recent.map((request) => (
                 <li
@@ -203,7 +211,13 @@ export function OverviewView() {
             <h2 className="text-base">Pending Actions</h2>
             <ul className="mt-3 space-y-3">
               {pending.length === 0 ? (
-                <li className="text-sm text-[#6B7280]">Nothing is waiting on the team.</li>
+                <li>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="Nothing is waiting"
+                    description="The team has no pending actions right now."
+                  />
+                </li>
               ) : null}
               {pending.map((request) => (
                 <li

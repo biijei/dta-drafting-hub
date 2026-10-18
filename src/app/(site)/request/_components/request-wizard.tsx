@@ -2,10 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { clsx } from "clsx";
-import { CloudUpload, Copy, FileCheck, Info, X } from "lucide-react";
+import { Copy, FileCheck, FileText, Info } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Control, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import {
   clearDraft,
@@ -26,6 +26,9 @@ import {
   type Service,
   type ServiceField,
 } from "@/content/services";
+import { Dropdown } from "@/components/ui/dropdown";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 
 const steps = ["Details/Documents", "Client Info", "Review", "Confirmation"];
 const maxFileBytes = 10 * 1024 * 1024;
@@ -313,7 +316,6 @@ function DetailsStep({
   onContinue: (details: Record<string, string>) => void;
 }) {
   const [serviceError, setServiceError] = useState("");
-  const uploadId = useId();
 
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-12">
@@ -325,53 +327,7 @@ function DetailsStep({
       </p>
 
       <div className="mt-8 rounded-2xl border border-line bg-card p-4 sm:p-5">
-        <label
-          htmlFor={uploadId}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault();
-            onFiles(event.dataTransfer.files);
-          }}
-          className="flex cursor-pointer flex-col items-center rounded-2xl bg-navy-wash px-6 py-14 text-center"
-        >
-          <CloudUpload className="h-8 w-8 text-navy" strokeWidth={1.5} aria-hidden />
-          <span className="mt-4 text-sm text-muted">
-            PDF, DOC, DOCX, JPG, PNG — max 10 MB per file
-          </span>
-          <input
-            id={uploadId}
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            className="sr-only"
-            onChange={(event) => {
-              if (event.target.files) {
-                onFiles(event.target.files);
-              }
-              event.target.value = "";
-            }}
-          />
-        </label>
-        {files.length ? (
-          <ul className="mt-4 space-y-2">
-            {files.map((file) => (
-              <li
-                key={file.name}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2 text-sm"
-              >
-                <span className="truncate">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveFile(file.name)}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-notice hover:text-ink"
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <FileDropzone files={files} onAdd={onFiles} onRemove={onRemoveFile} />
         {fileError ? (
           <p className="mt-3 text-sm text-red-700" role="alert">
             {fileError}
@@ -426,23 +382,27 @@ function ServiceSelect({
   slug: string;
   onSlug: (slug: string) => void;
 }) {
+  const selectId = useId();
+  const labelId = useId();
+
   return (
-    <label className="block text-sm font-semibold text-ink">
-      Which service do you need?
-      <span className="text-red-700"> *</span>
-      <select
+    <div>
+      <label id={labelId} htmlFor={selectId} className="block text-sm font-semibold text-ink">
+        Which service do you need?
+        <span className="text-red-700"> *</span>
+      </label>
+      <Dropdown
+        id={selectId}
+        labelledBy={labelId}
+        className="mt-2"
         value={slug}
-        onChange={(event) => onSlug(event.target.value)}
-        className={clsx(fieldClass, "mt-2")}
-      >
-        <option value="">Select a service</option>
-        {services.map((item) => (
-          <option key={item.slug} value={item.slug}>
-            {item.title}
-          </option>
-        ))}
-      </select>
-    </label>
+        onChange={onSlug}
+        options={[
+          { value: "", label: "Select a service" },
+          ...services.map((item) => ({ value: item.slug, label: item.title })),
+        ]}
+      />
+    </div>
   );
 }
 
@@ -497,14 +457,23 @@ function ServiceDetailsForm({
               ) : null}
             </div>
           )}
-          {service.fields.map((field) => (
-            <ServiceFieldInput
-              key={field.id}
-              field={field}
-              registration={form.register(field.id)}
-              error={form.formState.errors[field.id]?.message}
-            />
-          ))}
+          {service.fields.map((field) =>
+            field.type === "select" ? (
+              <ServiceSelectField
+                key={field.id}
+                field={field}
+                control={form.control}
+                error={form.formState.errors[field.id]?.message}
+              />
+            ) : (
+              <ServiceFieldInput
+                key={field.id}
+                field={field}
+                registration={form.register(field.id)}
+                error={form.formState.errors[field.id]?.message}
+              />
+            ),
+          )}
         </div>
       </div>
       <div className="mt-8 flex justify-center">
@@ -516,6 +485,56 @@ function ServiceDetailsForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function ServiceSelectField({
+  field,
+  control,
+  error,
+}: {
+  field: ServiceField;
+  control: Control<Record<string, string>>;
+  error?: string;
+}) {
+  const inputId = useId();
+  const labelId = useId();
+
+  return (
+    <div>
+      <label id={labelId} htmlFor={inputId} className="block text-sm font-semibold text-ink">
+        {field.label}
+        {field.required ? <span className="text-red-700"> *</span> : null}
+      </label>
+      <Controller
+        name={field.id}
+        control={control}
+        render={({ field: input }) => (
+          <Dropdown
+            id={inputId}
+            labelledBy={labelId}
+            name={input.name}
+            value={input.value ?? ""}
+            onChange={input.onChange}
+            onBlur={input.onBlur}
+            ariaInvalid={Boolean(error)}
+            className="mt-2"
+            options={[
+              { value: "", label: field.placeholder },
+              ...(field.options ?? []).map((option) => ({
+                value: option,
+                label: option,
+              })),
+            ]}
+          />
+        )}
+      />
+      {error ? (
+        <p className="mt-1 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -545,21 +564,6 @@ function ServiceFieldInput({
           className={clsx(fieldClass, "mt-2 resize-y")}
           {...registration}
         />
-      ) : null}
-      {field.type === "select" ? (
-        <select
-          id={inputId}
-          aria-invalid={error ? true : undefined}
-          className={clsx(fieldClass, "mt-2")}
-          {...registration}
-        >
-          <option value="">{field.placeholder}</option>
-          {field.options?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
       ) : null}
       {field.type === "text" || field.type === "date" ? (
         <input
@@ -843,7 +847,11 @@ function ReviewStep({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">No documents attached.</p>
+            <EmptyState
+              icon={FileText}
+              title="No documents attached"
+              description="You can go back and upload files, or submit without them."
+            />
           )}
         </ReviewCard>
 

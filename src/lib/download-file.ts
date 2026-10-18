@@ -6,5 +6,10 @@ export async function downloadStoredFile(id: string) {
     throw new Error(body.error || "Could not download the file.");
   }
 
-  window.location.assign(body.url);
+  const link = document.createElement("a");
+  link.href = body.url;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }

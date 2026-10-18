@@ -9,9 +9,11 @@ export function HomeTrack() {
   const [requestId, setRequestId] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     const id = requestId.trim();
     const mail = email.trim();
 
@@ -20,20 +22,28 @@ export function HomeTrack() {
       return;
     }
 
-    const response = await fetch("/api/track/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: id, email: mail }),
-    });
-    const body = (await response.json()) as { id?: string; error?: string };
-
-    if (!response.ok || !body.id) {
-      setError(body.error || "We couldn't find a request with that ID and email.");
-      return;
-    }
-
     setError("");
-    router.push(`/track-request/${body.id}`);
+    setPending(true);
+
+    try {
+      const response = await fetch("/api/track/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: id, email: mail }),
+      });
+      const body = (await response.json()) as { id?: string; error?: string };
+
+      if (!response.ok || !body.id) {
+        setError(body.error || "We couldn't find a request with that ID and email.");
+        setPending(false);
+        return;
+      }
+
+      router.push(`/track-request/${body.id}`);
+    } catch {
+      setError("We couldn't find a request with that ID and email.");
+      setPending(false);
+    }
   }
 
   return (
@@ -77,9 +87,11 @@ export function HomeTrack() {
         />
         <button
           type="submit"
-          className="text-nowrap rounded-full bg-lime px-6 py-3 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          disabled={pending}
+          aria-busy={pending}
+          className="text-nowrap rounded-full bg-lime px-6 py-3 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
         >
-          Track request
+          {pending ? "Looking up…" : "Track request"}
         </button>
       </form>
 

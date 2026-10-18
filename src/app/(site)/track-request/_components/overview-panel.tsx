@@ -31,6 +31,32 @@ export function OverviewPanel({
 }: OverviewPanelProps) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  async function approve() {
+    if (pending) return;
+    setError("");
+    setPending(true);
+
+    try {
+      const response = await fetch(`/api/track/requests/${request.id}/approve`, {
+        method: "POST",
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(body.error || "Could not approve the document.");
+        return;
+      }
+
+      setMessage("Document approved.");
+      await onRefresh();
+    } catch {
+      setError("Could not approve the document.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
@@ -83,39 +109,27 @@ export function OverviewPanel({
             {request.canApprove ? (
               <button
                 type="button"
-                onClick={() => {
-                  setError("");
-                  void fetch(`/api/track/requests/${request.id}/approve`, {
-                    method: "POST",
-                  })
-                    .then(async (response) => {
-                      const body = (await response.json()) as { error?: string };
-                      if (!response.ok) {
-                        setError(body.error || "Could not approve the document.");
-                        return;
-                      }
-
-                      setMessage("Document approved.");
-                      await onRefresh();
-                    })
-                    .catch(() => setError("Could not approve the document."));
-                }}
-                className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90"
+                onClick={() => void approve()}
+                disabled={pending}
+                aria-busy={pending}
+                className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90 disabled:opacity-60"
               >
-                Approve document
+                {pending ? "Approving…" : "Approve document"}
               </button>
             ) : null}
             <button
               type="button"
               onClick={onRequestChange}
-              className="rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change"
+              disabled={!request.canRevise}
+              className="rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change disabled:opacity-50"
             >
               Request change
             </button>
             <button
               type="button"
               onClick={onViewDocument}
-              className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted"
+              disabled={request.documents.length === 0}
+              className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted disabled:opacity-50"
             >
               View document
             </button>

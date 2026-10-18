@@ -1,12 +1,16 @@
 "use client";
 
 import { clsx } from "clsx";
-import { FileText } from "lucide-react";
+import { FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { AdminDocument } from "@/content/admin";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Dropdown } from "@/components/ui/dropdown";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 import { downloadStoredFile } from "@/lib/download-file";
 import { useAdmin } from "@/lib/admin-store";
+import { StatusPill } from "./status-pill";
 
 const card =
   "rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6";
@@ -49,7 +53,7 @@ export function RequestDetail({ id }: { id: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [priceMessage, setPriceMessage] = useState("");
   const staff = data.staff.filter((person) => person.active);
@@ -70,32 +74,67 @@ export function RequestDetail({ id }: { id: string }) {
   async function saveNote() {
     setActionError("");
     setNoteSaved("");
+    setPending("note");
 
     try {
       await updateRequest(current.id, { internalNote: note });
       setNoteSaved("Note saved.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Could not save the note.");
+    } finally {
+      setPending(null);
     }
   }
 
   async function assign(assigneeId: string) {
     setActionError("");
+    setPending("assign");
 
     try {
       await updateRequest(current.id, { assigneeId: assigneeId || null });
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Could not assign the request.");
+    } finally {
+      setPending(null);
     }
   }
 
   async function markInProgress() {
     setActionError("");
+    setPending("status");
 
     try {
       await updateRequest(current.id, { status: "In Progress" });
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Could not update the status.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function downloadFile(id: string) {
+    setActionError("");
+    setPending(`download:${id}`);
+
+    try {
+      await downloadStoredFile(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not download the file.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function deleteDocument(id: string) {
+    setActionError("");
+    setPending(`delete:${id}`);
+
+    try {
+      await removeDocument(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not delete the file.");
+    } finally {
+      setPending(null);
     }
   }
 
@@ -105,7 +144,7 @@ export function RequestDetail({ id }: { id: string }) {
       return;
     }
 
-    setBusy(true);
+    setPending("upload");
     setUploadError("");
 
     try {
@@ -117,7 +156,7 @@ export function RequestDetail({ id }: { id: string }) {
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Could not upload the file.");
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
@@ -131,7 +170,7 @@ export function RequestDetail({ id }: { id: string }) {
   async function generateLink() {
     setActionError("");
     setPriceMessage("");
-    setBusy(true);
+    setPending("generate");
 
     try {
       await sendPaymentLink(current.id, price.trim());
@@ -139,14 +178,14 @@ export function RequestDetail({ id }: { id: string }) {
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Could not send the payment link.");
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
   async function resendLink() {
     setActionError("");
     setPriceMessage("");
-    setBusy(true);
+    setPending("resend");
 
     try {
       await resendPaymentLink(current.id);
@@ -154,7 +193,7 @@ export function RequestDetail({ id }: { id: string }) {
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Could not resend the payment link.");
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
@@ -203,7 +242,10 @@ export function RequestDetail({ id }: { id: string }) {
               <section className={card}>
                 <h2 className="text-base">Request Details</h2>
                 <div className="mt-3">
-                  <DetailRow label="Status" value={request.status} />
+                  <div className="flex items-center justify-between gap-4 py-2 text-sm sm:gap-6">
+                    <span className="shrink-0 text-[#6B7280]">Status</span>
+                    <StatusPill status={request.status} />
+                  </div>
                   {request.detailRows.map((row) => (
                     <DetailRow key={row.label} label={row.label} value={row.value} />
                   ))}
@@ -228,10 +270,12 @@ export function RequestDetail({ id }: { id: string }) {
                         </div>
                         <button
                           type="button"
-                          onClick={() => void downloadStoredFile(submitted.id)}
-                          className="text-sm text-[#4B5563]"
+                          disabled={pending !== null}
+                          aria-busy={pending === `download:${submitted.id}`}
+                          onClick={() => void downloadFile(submitted.id)}
+                          className="text-sm text-[#4B5563] disabled:opacity-60"
                         >
-                          Download
+                          {pending === `download:${submitted.id}` ? "Downloading…" : "Download"}
                         </button>
                       </li>
                     ))}
@@ -242,7 +286,11 @@ export function RequestDetail({ id }: { id: string }) {
               <section className={card}>
                 <h2 className="text-base">Revision requests</h2>
                 {request.revisions.length === 0 ? (
-                  <p className="mt-3 text-sm text-[#6B7280]">No revision requests yet.</p>
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="No revision requests yet"
+                    description="Change requests from the client will show up here."
+                  />
                 ) : (
                   <ul className="mt-3 space-y-4">
                     {request.revisions.map((revision) => (
@@ -257,10 +305,14 @@ export function RequestDetail({ id }: { id: string }) {
                               <li key={attachment.id}>
                                 <button
                                   type="button"
-                                  onClick={() => void downloadStoredFile(attachment.id)}
-                                  className="text-sm font-medium text-[#3B5BDB]"
+                                  disabled={pending !== null}
+                                  aria-busy={pending === `download:${attachment.id}`}
+                                  onClick={() => void downloadFile(attachment.id)}
+                                  className="text-sm font-medium text-[#3B5BDB] disabled:opacity-60"
                                 >
-                                  {attachment.filename}
+                                  {pending === `download:${attachment.id}`
+                                    ? "Downloading…"
+                                    : attachment.filename}
                                 </button>
                               </li>
                             ))}
@@ -289,10 +341,12 @@ export function RequestDetail({ id }: { id: string }) {
                 />
                 <button
                   type="button"
+                  disabled={pending !== null}
+                  aria-busy={pending === "note"}
                   onClick={() => void saveNote()}
-                  className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white"
+                  className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
                 >
-                  Save note
+                  {pending === "note" ? "Saving…" : "Save note"}
                 </button>
                 {noteSaved ? (
                   <p className="mt-3 text-sm text-[#34A35A]">{noteSaved}</p>
@@ -322,20 +376,22 @@ export function RequestDetail({ id }: { id: string }) {
                       </label>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={pending !== null}
+                        aria-busy={pending === "generate"}
                         onClick={() => void generateLink()}
                         className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white disabled:opacity-60"
                       >
-                        Generate and email link
+                        {pending === "generate" ? "Sending link…" : "Generate and email link"}
                       </button>
                       {request.paymentUrl ? (
                         <button
                           type="button"
-                          disabled={busy}
+                          disabled={pending !== null}
+                          aria-busy={pending === "resend"}
                           onClick={() => void resendLink()}
                           className="mt-3 flex w-full items-center justify-center rounded-full border border-[#E6E8EE] px-5 py-3 text-sm font-medium disabled:opacity-60"
                         >
-                          Resend link
+                          {pending === "resend" ? "Resending…" : "Resend link"}
                         </button>
                       ) : null}
                     </>
@@ -373,40 +429,52 @@ export function RequestDetail({ id }: { id: string }) {
                 {canStart ? (
                   <button
                     type="button"
+                    disabled={pending !== null}
+                    aria-busy={pending === "status"}
                     onClick={() => void markInProgress()}
-                    className="mt-4 flex w-full items-center justify-center rounded-full border border-[#E6E8EE] px-5 py-3 text-sm font-medium"
+                    className="mt-4 flex w-full items-center justify-center rounded-full border border-[#E6E8EE] px-5 py-3 text-sm font-medium disabled:opacity-60"
                   >
-                    Mark in progress
+                    {pending === "status" ? "Updating…" : "Mark in progress"}
                   </button>
                 ) : null}
                 {awaitingPrice ? null : (
                 <button
                   type="button"
+                  disabled={pending !== null}
                   onClick={() => {
                     setUploadOpen(true);
                     setKind(request.status === "Approved" ? "final" : "draft");
                   }}
-                  className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white"
+                  className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white disabled:opacity-60"
                 >
                   Upload document
                 </button>
                 )}
-                <label className="mt-4 block text-sm text-[#6B7280]">
-                  Assign to
-                  <select
-                    aria-label="Assign to"
-                    value={request.assigneeId ?? ""}
-                    onChange={(event) => void assign(event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-[#E6E8EE] bg-white px-4 py-3 text-sm text-[#121826] outline-none"
+                <div className="mt-4">
+                  <label
+                    id="assign-to-label"
+                    htmlFor="assign-to"
+                    className="block text-sm text-[#6B7280]"
                   >
-                    <option value="">Unassigned</option>
-                    {staff.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    Assign to
+                  </label>
+                  <Dropdown
+                    id="assign-to"
+                    labelledBy="assign-to-label"
+                    className="mt-2"
+                    disabled={pending !== null}
+                    buttonLabel={pending === "assign" ? "Assigning…" : undefined}
+                    value={request.assigneeId ?? ""}
+                    onChange={(assigneeId) => void assign(assigneeId)}
+                    options={[
+                      { value: "", label: "Unassigned" },
+                      ...staff.map((person) => ({
+                        value: person.id,
+                        label: person.name,
+                      })),
+                    ]}
+                  />
+                </div>
                 {actionError ? (
                   <p className="mt-3 text-sm text-[#E25555]">{actionError}</p>
                 ) : null}
@@ -418,21 +486,30 @@ export function RequestDetail({ id }: { id: string }) {
                       void submitUpload();
                     }}
                   >
-                    <label className="block text-sm text-[#6B7280]">
-                      Document type
-                      <select
-                        value={kind}
-                        onChange={(event) =>
-                          setKind(event.target.value === "final" ? "final" : "draft")
-                        }
-                        className="mt-2 w-full rounded-xl border border-[#E6E8EE] bg-white px-4 py-3 text-sm text-[#121826] outline-none"
+                    <div>
+                      <label
+                        id="document-type-label"
+                        htmlFor="document-type"
+                        className="block text-sm text-[#6B7280]"
                       >
-                        <option value="draft">Draft for client review</option>
-                        <option value="final" disabled={request.status !== "Approved"}>
-                          Final document
-                        </option>
-                      </select>
-                    </label>
+                        Document type
+                      </label>
+                      <Dropdown
+                        id="document-type"
+                        labelledBy="document-type-label"
+                        className="mt-2"
+                        value={kind}
+                        onChange={(next) => setKind(next === "final" ? "final" : "draft")}
+                        options={[
+                          { value: "draft", label: "Draft for client review" },
+                          {
+                            value: "final",
+                            label: "Final document",
+                            disabled: request.status !== "Approved",
+                          },
+                        ]}
+                      />
+                    </div>
                     <label className="block text-sm text-[#6B7280]">
                       Review note
                       <textarea
@@ -443,21 +520,22 @@ export function RequestDetail({ id }: { id: string }) {
                         className="mt-2 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm text-[#121826] outline-none"
                       />
                     </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                      className="block w-full text-sm"
+                    <FileDropzone
+                      files={file ? [{ name: file.name }] : []}
+                      multiple={false}
+                      onAdd={(incoming) => setFile(incoming[0] ?? null)}
+                      onRemove={() => setFile(null)}
                     />
                     {uploadError ? (
                       <p className="text-sm text-[#E25555]">{uploadError}</p>
                     ) : null}
                     <button
                       type="submit"
-                      disabled={busy}
+                      disabled={pending !== null}
+                      aria-busy={pending === "upload"}
                       className="inline-flex rounded-full bg-[#0C1B4D] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
                     >
-                      {busy ? "Uploading…" : "Send to client"}
+                      {pending === "upload" ? "Uploading…" : "Send to client"}
                     </button>
                   </form>
                 ) : null}
@@ -471,7 +549,11 @@ export function RequestDetail({ id }: { id: string }) {
             </div>
             {groups.length === 0 ? (
               <section className={card}>
-                <p className="text-sm text-[#6B7280]">No documents yet.</p>
+                <EmptyState
+                  icon={FileText}
+                  title="No documents yet"
+                  description="Uploaded drafts and finals will show up here."
+                />
               </section>
             ) : (
               <div className="grid gap-4">
@@ -499,18 +581,22 @@ export function RequestDetail({ id }: { id: string }) {
                           <div className="flex shrink-0 items-center gap-4 sm:pl-4">
                             <button
                               type="button"
-                              onClick={() => void downloadStoredFile(item.id)}
-                              className="rounded-full border border-[#E6E8EE] px-4 py-1.5 text-sm text-[#374151]"
+                              disabled={pending !== null}
+                              aria-busy={pending === `download:${item.id}`}
+                              onClick={() => void downloadFile(item.id)}
+                              className="rounded-full border border-[#E6E8EE] px-4 py-1.5 text-sm text-[#374151] disabled:opacity-60"
                             >
-                              Download
+                              {pending === `download:${item.id}` ? "Downloading…" : "Download"}
                             </button>
                             {item.kind === "draft" ? (
                               <button
                                 type="button"
-                                onClick={() => void removeDocument(item.id)}
-                                className="text-sm text-[#374151]"
+                                disabled={pending !== null}
+                                aria-busy={pending === `delete:${item.id}`}
+                                onClick={() => void deleteDocument(item.id)}
+                                className="text-sm text-[#374151] disabled:opacity-60"
                               >
-                                Delete
+                                {pending === `delete:${item.id}` ? "Deleting…" : "Delete"}
                               </button>
                             ) : null}
                           </div>

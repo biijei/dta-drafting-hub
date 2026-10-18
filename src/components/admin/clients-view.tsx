@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronsLeft, ChevronsRight, Search } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAdmin } from "@/lib/admin-store";
 
 const pageSize = 8;
@@ -45,9 +46,11 @@ export function ClientsView() {
 
       <section className="mt-4 overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         {visible.length === 0 ? (
-          <p className="px-6 py-10 text-sm text-[#6B7280]">
-            No clients match this search.
-          </p>
+          <EmptyState
+            icon={Users}
+            title="No clients match this search"
+            description="Try a different name."
+          />
         ) : (
           <ul>
             {visible.map((client) => (
