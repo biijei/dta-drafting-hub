@@ -85,7 +85,7 @@ export function DocumentPanel({ request, onRefresh }: DocumentPanelProps) {
             onClick={openConfirm}
             disabled={pending !== null}
             aria-busy={pending === "approve"}
-            className="rounded-full bg-navy px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 disabled:opacity-60"
           >
             {pending === "approve" ? "Approving…" : "Approve draft"}
           </button>

@@ -29,6 +29,7 @@ type FileRow = {
   note: string;
   author_name: string;
   created_at: string;
+  deleted_at?: string | null;
 };
 
 type RevisionRow = {
@@ -187,7 +188,10 @@ export function toAdminRequest(
         size: formatFileSize(file.size_bytes),
       })),
     documents: mine
-      .filter((file) => file.kind === "draft" || file.kind === "final")
+      .filter(
+        (file) =>
+          !file.deleted_at && (file.kind === "draft" || file.kind === "final"),
+      )
       .map(toDocument),
     revisions: revisionViews,
     internalNote: request.internal_note,

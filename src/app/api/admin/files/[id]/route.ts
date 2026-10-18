@@ -1,4 +1,3 @@
-import { bucket } from "@/lib/files";
 import { requireStaff } from "@/lib/auth";
 import { jsonError, jsonOk } from "@/lib/http";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -21,11 +20,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const supabase = createServiceClient();
     const { data: file } = await supabase
       .from("files")
-      .select("id, kind, storage_path, request_id")
+      .select("id, kind, deleted_at")
       .eq("id", id)
       .maybeSingle();
 
-    if (!file) {
+    if (!file || file.deleted_at) {
       return jsonError("File not found.", 404);
     }
 
@@ -33,21 +32,14 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return jsonError("Only draft files can be deleted.", 400);
     }
 
-    if (file.storage_path) {
-      await supabase.storage.from(bucket).remove([file.storage_path]);
-    }
-
-    const { error } = await supabase.from("files").delete().eq("id", id);
+    const { error } = await supabase
+      .from("files")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null);
 
     if (error) {
       return jsonError("Could not delete the file.", 500);
-    }
-
-    if (file.request_id) {
-      await supabase.from("activity").insert({
-        request_id: file.request_id,
-        message: "A draft file was removed.",
-      });
     }
 
     return jsonOk({ ok: true });

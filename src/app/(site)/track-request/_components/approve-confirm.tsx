@@ -55,7 +55,7 @@ export function ApproveConfirm({
           onClick={onConfirm}
           disabled={pending}
           aria-busy={pending}
-          className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90 disabled:opacity-60"
+          className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 disabled:opacity-60"
         >
           {pending ? "Approving…" : "Approve and finish"}
         </button>

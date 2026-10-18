@@ -8,9 +8,16 @@ import {
   toPayments,
   type RequestRow,
 } from "@/lib/records";
+import { purgeExpiredFiles } from "@/lib/purge-files";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export async function loadAdminData() {
+  try {
+    await purgeExpiredFiles();
+  } catch (error) {
+    console.error(error);
+  }
+
   const supabase = createServiceClient();
   const [requestsRes, filesRes, revisionsRes, paymentsRes, profilesRes, settingsRes] =
     await Promise.all([

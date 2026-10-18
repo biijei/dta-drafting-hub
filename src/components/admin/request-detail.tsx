@@ -611,7 +611,7 @@ export function RequestDetail({ id }: { id: string }) {
         title="Delete this draft?"
         description={
           draftToDelete
-            ? `${draftToDelete.filename} will be removed from this request. The client will no longer be able to download it.`
+            ? `${draftToDelete.filename} will be hidden from the admin panel. The client can still see and download it. After 60 days this file is permanently deleted and cannot be retrieved.`
             : undefined
         }
         icon={

@@ -109,7 +109,7 @@ export function RevisionsPanel({ request, onRefresh }: RevisionsPanelProps) {
 
   return (
     <section>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-ink">Revisions</h2>
           <p className="mt-1 text-sm text-muted">
