@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { clsx } from "clsx";
-import { CloudUpload, FileCheck, X } from "lucide-react";
+import { CloudUpload, FileCheck, Info, X } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
 import { useForm, type Resolver } from "react-hook-form";
@@ -847,14 +847,27 @@ function ReviewStep({
           )}
         </ReviewCard>
 
-        <article className="rounded-2xl border border-line bg-card px-5 py-5 sm:px-6">
-          <h2 className="text-base font-semibold text-ink">What happens next</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Submit the request and files now. DTA reviews them and emails a
-            PayPal link for the quoted USD amount. Work starts after that
-            payment is confirmed.
-          </p>
-        </article>
+        <aside
+          role="note"
+          className="flex gap-4 rounded-2xl border border-gold/50 border-l-4 border-l-gold bg-navy-wash px-5 py-5 sm:px-6"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-light text-navy">
+            <Info className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-navy-bright uppercase">
+              For your review
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-ink">
+              What happens next
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-navy-mid">
+              Submit the request and files now. DTA reviews them and emails a
+              PayPal link for the quoted USD amount. Work starts after that
+              payment is confirmed.
+            </p>
+          </div>
+        </aside>
       </div>
 
       <div className="mt-8 flex flex-col items-center gap-3">
