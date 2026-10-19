@@ -69,9 +69,92 @@ body {
   }
 }
 
+.contact-dock-pulse {
+  animation: contact-dock-pulse 2.6s ease-out infinite;
+}
+
+@keyframes contact-dock-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  70%,
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+.contact-dock-panel,
+.contact-dock-backdrop {
+  transition-duration: 320ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.contact-dock-panel {
+  transform: translateX(105%);
+  transition-property: transform;
+}
+
+.contact-dock-panel.is-open {
+  transform: translateX(0);
+}
+
+.contact-dock-backdrop {
+  opacity: 0;
+  transition-property: opacity;
+}
+
+.contact-dock-backdrop.is-open {
+  opacity: 1;
+}
+
+.contact-dock-icon {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+}
+
+.lookup-rise {
+  animation: lookup-rise 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes lookup-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lookup-ring {
+  box-shadow: 0 0 0 4px rgba(153, 109, 255, 0.5);
+  animation: lookup-ring 2.6s ease-in-out infinite;
+}
+
+@keyframes lookup-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(153, 109, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(153, 109, 255, 0.12);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marquee-track,
-  .modal-fade {
+  .modal-fade,
+  .contact-dock-pulse,
+  .lookup-rise,
+  .lookup-ring {
     animation: none;
+  }
+
+  .contact-dock-panel,
+  .contact-dock-backdrop,
+  .contact-dock-icon {
+    transition: none;
   }
 }

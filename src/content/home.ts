@@ -12,22 +12,22 @@ export const homeProcessSteps = [
   {
     number: 2,
     title: "Submit your request",
-    description: "Complete a structured form with your requirements.",
+    description: "Share your details and any supporting files.",
   },
   {
     number: 3,
-    title: "Upload documents",
-    description: "Securely attach any supporting files.",
+    title: "Pay your quote",
+    description: "Pay the emailed PayPal link to start the work.",
   },
   {
     number: 4,
-    title: "Review your draft",
-    description: "We prepare your document and send it for your review.",
+    title: "We prepare your document",
+    description: "A specialist drafts it after payment is confirmed.",
   },
   {
     number: 5,
-    title: "Approve & download",
-    description: "Approve the final document and download it securely.",
+    title: "Review and download",
+    description: "Approve the draft, or request changes, then download it.",
   },
 ];
 
