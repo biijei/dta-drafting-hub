@@ -27,6 +27,7 @@ import {
   type ServiceField,
 } from "@/content/services";
 import { Dropdown } from "@/components/ui/dropdown";
+import { PageLoading } from "@/components/ui/page-loading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileDropzone } from "@/components/ui/file-dropzone";
 
@@ -111,7 +112,7 @@ export function RequestWizard({ initialSlug }: RequestWizardProps) {
   );
 
   if (stored === undefined) {
-    return <div className="min-h-[24rem] flex-1 bg-white" />;
+    return <PageLoading label="Loading your request" />;
   }
 
   return <RequestFlow initialSlug={initialSlug} stored={stored} />;

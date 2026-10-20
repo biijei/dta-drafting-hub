@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { PageLoading } from "@/components/ui/page-loading";
 import { AdminProvider } from "@/lib/admin-store";
 
 export default function AdminPanelLayout({
@@ -27,7 +28,11 @@ export default function AdminPanelLayout({
   }, [pathname, router]);
 
   if (!allowed) {
-    return <div className="admin-app min-h-full flex-1 bg-[#F3F4F6]" />;
+    return (
+      <div className="admin-app flex min-h-full flex-1 bg-[#F3F4F6]">
+        <PageLoading label="Loading admin data" />
+      </div>
+    );
   }
 
   return (

@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { PageLoading } from "@/components/ui/page-loading";
 import type {
   AdminClient,
   AdminPayment,
@@ -239,8 +240,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   if (!data || !value) {
     return (
-      <div className="admin-app min-h-full flex-1 bg-[#F3F4F6] px-6 py-10 text-sm text-[#6B7280]">
-        {error || "Loading admin data…"}
+      <div className="admin-app flex min-h-full flex-1 bg-[#F3F4F6]">
+        {error ? (
+          <p className="px-6 py-10 text-sm text-[#6B7280]">{error}</p>
+        ) : (
+          <PageLoading label="Loading admin data" />
+        )}
       </div>
     );
   }

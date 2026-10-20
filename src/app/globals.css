@@ -143,12 +143,23 @@ body {
   }
 }
 
+.page-loading-spin {
+  animation: page-loading-spin 0.8s linear infinite;
+}
+
+@keyframes page-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marquee-track,
   .modal-fade,
   .contact-dock-pulse,
   .lookup-rise,
-  .lookup-ring {
+  .lookup-ring,
+  .page-loading-spin {
     animation: none;
   }
 

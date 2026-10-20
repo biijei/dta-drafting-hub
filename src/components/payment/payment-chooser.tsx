@@ -2,6 +2,7 @@
 
 import { PayPalButtons, PayPalScriptProvider, usePayPalScriptReducer } from "@paypal/react-paypal-js";
 import { useRef, useState } from "react";
+import { toast } from "@/components/ui/toast";
 
 type PaymentChooserProps = {
   requestId?: string;
@@ -48,6 +49,7 @@ export function PaymentChooser({ requestId, onPaid }: PaymentChooserProps) {
         onError={setError}
         onPaid={() => {
           setPaid(true);
+          toast.success("Payment received. Work has started.");
           onPaid?.();
         }}
       />
