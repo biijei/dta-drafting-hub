@@ -15,12 +15,56 @@ export type PayPalOrder = {
   id?: string;
   status?: string;
   links?: { href?: string; rel?: string }[];
+  payment_source?: Record<string, unknown>;
   purchase_units?: {
     custom_id?: string;
     payments?: { captures?: PayPalCapture[] };
     amount?: PayPalAmount;
   }[];
 };
+
+const methodLabels: Record<string, string> = {
+  apple_pay: "Apple Pay",
+  bancontact: "Bancontact",
+  bank: "Bank transfer",
+  blik: "BLIK",
+  card: "Card",
+  credit: "PayPal Credit",
+  eps: "EPS",
+  giropay: "Giropay",
+  google_pay: "Google Pay",
+  ideal: "iDEAL",
+  mybank: "MyBank",
+  p24: "Przelewy24",
+  pay_upon_invoice: "Bank transfer",
+  paypal: "PayPal",
+  sepa: "Bank transfer",
+  sofort: "Sofort",
+  trustly: "Trustly",
+  venmo: "Venmo",
+};
+
+export function paymentPageUrl(requestId: string) {
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
+  return `${origin}/pay/${requestId}`;
+}
+
+export function methodFromOrder(order: PayPalOrder) {
+  const key = order.payment_source ? Object.keys(order.payment_source)[0] : undefined;
+
+  if (!key) {
+    return "PayPal";
+  }
+
+  if (methodLabels[key]) {
+    return methodLabels[key];
+  }
+
+  return key
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function paypalBase() {
   return process.env.PAYPAL_ENV === "live"
@@ -93,7 +137,6 @@ export async function createPaypalOrder(input: {
   amount: string;
   description: string;
 }) {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
   const response = await paypalFetch("/v2/checkout/orders", {
     method: "POST",
     body: JSON.stringify({
@@ -107,27 +150,39 @@ export async function createPaypalOrder(input: {
       ],
       application_context: {
         brand_name: "DTA Drafting Hub",
+        landing_page: "BILLING",
+        payment_method: { payee_preferred: "UNRESTRICTED" },
+        shipping_preference: "NO_SHIPPING",
         user_action: "PAY_NOW",
-        return_url: `${origin}/track-request`,
-        cancel_url: `${origin}/track-request`,
+        return_url: paymentPageUrl(input.requestId),
+        cancel_url: paymentPageUrl(input.requestId),
       },
     }),
   });
 
   if (!response.ok) {
-    throw new Error("PayPal could not create the payment link.");
+    throw new Error("PayPal could not start the payment.");
   }
 
   const order = (await response.json()) as PayPalOrder;
-  const approvalUrl = order.links?.find(
-    (link) => link.rel === "payer-action" || link.rel === "approve",
-  )?.href;
 
-  if (!order.id || !approvalUrl) {
-    throw new Error("PayPal did not return a payment link.");
+  if (!order.id) {
+    throw new Error("PayPal could not start the payment.");
   }
 
-  return { orderId: order.id, approvalUrl };
+  return { orderId: order.id };
+}
+
+export async function getPaypalOrder(orderId: string) {
+  const response = await paypalFetch(
+    `/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+  );
+
+  if (!response.ok) {
+    throw new Error("PayPal could not load the payment.");
+  }
+
+  return (await response.json()) as PayPalOrder;
 }
 
 export async function capturePaypalOrder(orderId: string) {

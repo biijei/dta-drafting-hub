@@ -1,10 +1,11 @@
 import { CreditCard, FileSearch, Mail, PenLine, Receipt } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TrackedRequest } from "@/content/track-request";
-import { EmptyState } from "@/components/ui/empty-state";
+import { PaymentChooser } from "@/components/payment/payment-chooser";
 
 type PaymentPanelProps = {
   request: TrackedRequest;
+  onPaid?: () => void;
 };
 
 const navyWash =
@@ -18,17 +19,17 @@ const waitSteps: { icon: LucideIcon; title: string; text: string }[] = [
   },
   {
     icon: Mail,
-    title: "PayPal link",
+    title: "Payment link",
     text: "A link for the quoted amount appears here and in your email.",
   },
   {
     icon: PenLine,
     title: "Work starts",
-    text: "Work starts after PayPal confirms the payment.",
+    text: "Work starts after the payment is confirmed.",
   },
 ];
 
-export function PaymentPanel({ request }: PaymentPanelProps) {
+export function PaymentPanel({ request, onPaid }: PaymentPanelProps) {
   if (request.status === "Pending Review") {
     return (
       <section>
@@ -44,7 +45,7 @@ export function PaymentPanel({ request }: PaymentPanelProps) {
             <span className="mt-2 block text-white">your files</span>
           </h3>
           <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-gold">
-            A PayPal link for the quoted amount will appear here and in your email.
+            A payment link for the quoted amount will appear here and in your email.
           </p>
           <ol className="mx-auto mt-8 grid max-w-2xl gap-3 text-left sm:grid-cols-3">
             {waitSteps.map((step, index) => {
@@ -115,24 +116,13 @@ export function PaymentPanel({ request }: PaymentPanelProps) {
               </span>
             </div>
             <p className="mt-4 max-w-md text-sm leading-6 text-gold">
-              Pay with PayPal. Work starts after PayPal confirms the payment.
+              Choose card, PayPal, or another method PayPal offers. A card payment does not
+              need a PayPal account. Work starts after the payment is confirmed.
             </p>
-            {request.paymentUrl ? (
-              <a
-                href={request.paymentUrl}
-                className="mt-6 inline-flex rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
-              >
-                Pay with PayPal
-              </a>
-            ) : null}
+            <div className="mt-6">
+              <PaymentChooser onPaid={onPaid} />
+            </div>
           </div>
-          {request.paymentUrl ? null : (
-            <EmptyState
-              icon={CreditCard}
-              title="Payment link isn't ready"
-              description="DTA will email the PayPal link when the quote is set."
-            />
-          )}
         </article>
       </section>
     );

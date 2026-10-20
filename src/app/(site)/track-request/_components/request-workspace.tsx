@@ -74,6 +74,7 @@ export function RequestWorkspace({ request, onRefresh }: RequestWorkspaceProps) 
             onRequestChange={() => setTab("Revisions")}
             onViewDocument={() => setTab("Document")}
             onRefresh={onRefresh}
+            onPay={() => setTab("Payment")}
           />
         ) : null}
         {tab === "Document" ? (
@@ -82,7 +83,9 @@ export function RequestWorkspace({ request, onRefresh }: RequestWorkspaceProps) 
         {tab === "Revisions" ? (
           <RevisionsPanel request={request} onRefresh={onRefresh} />
         ) : null}
-        {tab === "Payment" ? <PaymentPanel request={request} /> : null}
+        {tab === "Payment" ? (
+          <PaymentPanel request={request} onPaid={() => void onRefresh()} />
+        ) : null}
         {tab === "Activity" ? <ActivityPanel request={request} /> : null}
       </div>
     </div>

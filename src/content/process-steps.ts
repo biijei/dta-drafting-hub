@@ -31,7 +31,7 @@ export const processPhases: ProcessPhase[] = [
         number: 3,
         title: "Pay your quote",
         description:
-          "We review the request and email a PayPal link, and paying that amount confirms the request and starts the work.",
+          "We review the request and email a payment link. You can pay by card, PayPal, or another available method, and paying that amount starts the work.",
       },
     ],
   },

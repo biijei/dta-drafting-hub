@@ -354,7 +354,7 @@ function reviewNotice(status: RequestStatus) {
     return {
       title: "Your request is being reviewed",
       description:
-        "DTA is reviewing your files. A PayPal link for the quoted amount will be emailed once the price is set.",
+        "DTA is reviewing your files. A payment link for the quoted amount will be emailed once the price is set.",
     };
   }
 
@@ -362,7 +362,7 @@ function reviewNotice(status: RequestStatus) {
     return {
       title: "Your payment link is ready",
       description:
-        "Pay the quoted amount from the Payment tab. Work starts after PayPal confirms the payment.",
+        "Pay the quoted amount from the Payment tab. Choose card, PayPal, or another method PayPal offers. A card payment does not need a PayPal account.",
     };
   }
 
@@ -475,7 +475,7 @@ export function toTrackedRequest(
       transactionId: payment?.paypal_capture_id || "—",
       amount:
         request.amount_cents > 0 ? formatUsdCents(request.amount_cents) : "To be quoted",
-      method: "PayPal",
+      method: payment?.method || "PayPal",
       date: payment ? stamp(payment.paid_at ?? payment.created_at) : "—",
     },
     paymentUrl: request.status === "Awaiting Payment" ? request.payment_url : null,
