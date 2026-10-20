@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Target } from "lucide-react";
+import { Building2, Target } from "lucide-react";
 import { ServiceMarquee } from "./_components/service-marquee";
-import { PageHero } from "@/components/ui/page-hero";
 import { RequestButton } from "@/components/ui/request-button";
 
 export const metadata: Metadata = {
@@ -31,11 +30,19 @@ const values = [
 export default function AboutPage() {
   return (
     <>
-      <PageHero
-        variant="inset"
-        title="About DTA Drafting Hub"
-        description="Professional document services built around clarity, trust, and precision."
-      />
+      <section className="px-4 pt-10 sm:pt-14">
+        <div className="lookup-rise mx-auto w-full max-w-[962px] overflow-hidden rounded-[1.75rem] bg-[radial-gradient(120%_90%_at_50%_0%,#24367f_0%,#0d1b4b_46%,#070f2c_100%)] px-5 py-10 text-center sm:px-10 sm:py-12">
+          <span className="lookup-ring mx-auto grid h-14 w-14 place-items-center rounded-full bg-lime text-navy">
+            <Building2 className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+          </span>
+          <h1 className="mt-6 text-3xl font-extrabold leading-none tracking-tight text-lime sm:text-4xl">
+            About DTA Drafting Hub
+          </h1>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-gold">
+            Professional document services built around clarity, trust, and precision.
+          </p>
+        </div>
+      </section>
       <section className="px-4 py-12 sm:py-16">
         <div className="mx-auto w-full max-w-[962px]">
         <article className="rounded-2xl bg-card px-6 py-8 shadow-sm sm:px-8">
@@ -88,19 +95,19 @@ export default function AboutPage() {
       <ServiceMarquee />
 
       <section className="px-4 py-12">
-        <div className="mx-auto flex w-full max-w-[962px] flex-col items-center">
-        <div className="w-full rounded-2xl bg-notice px-6 py-5 text-sm leading-6 text-muted">
-          <p>
-            <span className="font-semibold text-ink">Important Notice: </span>
-            DTA Drafting Hub provides document drafting and review services
-            only. We do not provide legal advice. For legal advice specific to
-            your circumstances, please consult a qualified legal professional
-            licensed in the relevant jurisdiction.
+        <div className="mx-auto w-full max-w-[962px] overflow-hidden rounded-[1.75rem] bg-[radial-gradient(120%_90%_at_50%_0%,#24367f_0%,#0d1b4b_46%,#070f2c_100%)] px-6 py-10 text-center sm:px-10 sm:py-12">
+          <h2 className="text-2xl font-extrabold leading-none text-lime sm:text-3xl">
+            Important Notice
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-gold">
+            DTA Drafting Hub provides document drafting and review services only.
+            We do not provide legal advice. For legal advice specific to your
+            circumstances, please consult a qualified legal professional licensed
+            in the relevant jurisdiction.
           </p>
-        </div>
-        <div className="mt-8">
-          <RequestButton />
-        </div>
+          <div className="mt-6">
+            <RequestButton className="bg-lime font-semibold text-navy hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" />
+          </div>
         </div>
       </section>
     </>

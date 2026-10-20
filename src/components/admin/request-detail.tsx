@@ -1,12 +1,18 @@
 "use client";
 
 import { clsx } from "clsx";
-import { FileText } from "lucide-react";
+import { FileText, MessageSquare, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { assignees, type AdminDocument } from "@/content/admin";
-import { downloadAdminFile } from "@/lib/download-admin-file";
+import type { AdminDocument } from "@/content/admin";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Dropdown } from "@/components/ui/dropdown";
+import { FileDropzone } from "@/components/ui/file-dropzone";
+import { Modal } from "@/components/ui/modal";
+import { toast } from "@/components/ui/toast";
+import { downloadStoredFile } from "@/lib/download-file";
 import { useAdmin } from "@/lib/admin-store";
+import { StatusPill } from "./status-pill";
 
 const card =
   "rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-6";
@@ -37,12 +43,22 @@ function groupDocuments(documents: AdminDocument[]) {
 }
 
 export function RequestDetail({ id }: { id: string }) {
-  const { data, updateRequest, addDocument, removeDocument } = useAdmin();
+  const { data, updateRequest, uploadDocument, removeDocument, sendPaymentLink, resendPaymentLink } =
+    useAdmin();
   const request = data.requests.find((item) => item.id === id);
   const [tab, setTab] = useState<"Overview" | "Document">("Overview");
   const [note, setNote] = useState(request?.internalNote ?? "");
-  const [noteSaved, setNoteSaved] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
+  const [kind, setKind] = useState<"draft" | "final">("draft");
+  const [reviewNote, setReviewNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [draftToDelete, setDraftToDelete] = useState<{ id: string; filename: string } | null>(
+    null,
+  );
+  const [price, setPrice] = useState("");
+  const staff = data.staff.filter((person) => person.active);
 
   if (!request) {
     return (
@@ -55,32 +71,142 @@ export function RequestDetail({ id }: { id: string }) {
     );
   }
 
-  function openFilePicker() {
-    fileInput.current?.click();
+  const current = request;
+
+  async function saveNote() {
+    setPending("note");
+
+    try {
+      await updateRequest(current.id, { internalNote: note });
+      toast.success("Note saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save the note.");
+    } finally {
+      setPending(null);
+    }
   }
 
-  function onFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  async function assign(assigneeId: string) {
+    setPending("assign");
 
-    if (!file || !request) {
+    try {
+      await updateRequest(current.id, { assigneeId: assigneeId || null });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not assign the request.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function markInProgress() {
+    setPending("status");
+
+    try {
+      await updateRequest(current.id, { status: "In Progress" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update the status.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function downloadFile(id: string) {
+    setPending(`download:${id}`);
+
+    try {
+      await downloadStoredFile(id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not download the file.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function deleteDocument(fileId: string) {
+    setPending(`delete:${fileId}`);
+
+    try {
+      await removeDocument(fileId);
+      setDraftToDelete(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the file.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  function closeDelete() {
+    if (draftToDelete && pending === `delete:${draftToDelete.id}`) {
       return;
     }
 
-    addDocument(request.id, file);
-    setTab("Document");
+    setDraftToDelete(null);
+  }
+
+  function closeUpload() {
+    if (pending === "upload") {
+      return;
+    }
+
+    setUploadOpen(false);
+  }
+
+  async function submitUpload() {
+    if (!file || !reviewNote.trim()) {
+      toast.error("Choose a file and add a review note.");
+      return;
+    }
+
+    setPending("upload");
+
+    try {
+      await uploadDocument(current.id, file, kind, reviewNote.trim());
+      setUploadOpen(false);
+      setFile(null);
+      setReviewNote("");
+      setTab("Document");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not upload the file.");
+    } finally {
+      setPending(null);
+    }
   }
 
   const groups = groupDocuments(request.documents);
+  const canStart =
+    request.status === "Submitted" || request.status === "Revision Requested";
+  const awaitingPrice =
+    request.status === "Pending Review" || request.status === "Awaiting Payment";
+  const isOwner = data.profile.role === "owner";
+
+  async function generateLink() {
+    setPending("generate");
+
+    try {
+      await sendPaymentLink(current.id, price.trim());
+      toast.success("Payment link emailed.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the payment link.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function resendLink() {
+    setPending("resend");
+
+    try {
+      await resendPaymentLink(current.id);
+      toast.success("Payment link resent.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not resend the payment link.");
+    } finally {
+      setPending(null);
+    }
+  }
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-7 sm:-mt-7">
-      <input
-        ref={fileInput}
-        type="file"
-        className="sr-only"
-        onChange={onFile}
-      />
       <div className="bg-white px-4 pt-6 sm:px-7">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -124,49 +250,87 @@ export function RequestDetail({ id }: { id: string }) {
               <section className={card}>
                 <h2 className="text-base">Request Details</h2>
                 <div className="mt-3">
-                  <DetailRow label="Document Type" value={request.documentType} />
-                  <DetailRow
-                    label="Destination Country"
-                    value={request.destinationCountry}
-                  />
-                  <DetailRow
-                    label="Application Type"
-                    value={request.applicationType}
-                  />
-                  <DetailRow label="Current Stage" value={request.currentStage} />
+                  <div className="flex items-center justify-between gap-4 py-2 text-sm sm:gap-6">
+                    <span className="shrink-0 text-[#6B7280]">Status</span>
+                    <StatusPill status={request.status} />
+                  </div>
+                  {request.detailRows.map((row) => (
+                    <DetailRow key={row.label} label={row.label} value={row.value} />
+                  ))}
                 </div>
               </section>
 
-              {request.submittedFile ? (
+              {request.submittedFiles.length ? (
                 <section className={card}>
                   <h2 className="text-base">Submitted Files</h2>
-                  <div className="mt-4 flex flex-col gap-3 rounded-xl bg-[#F4F6FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <FileText className="size-5 shrink-0 text-[#98A2B3]" />
-                      <div className="min-w-0">
-                        <p className="break-all text-sm font-semibold">
-                          {request.submittedFile.name}
-                        </p>
-                        <p className="text-xs text-[#9CA3AF]">
-                          {request.submittedFile.size}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        downloadAdminFile(
-                          request.submittedFile?.name ?? "file",
-                          request.submittedFile?.size,
-                        )
-                      }
-                      className="text-sm text-[#4B5563]"
-                    >
-                      Download
-                    </button>
-                  </div>
+                  <ul className="mt-4 space-y-3">
+                    {request.submittedFiles.map((submitted) => (
+                      <li
+                        key={submitted.id}
+                        className="flex flex-col gap-3 rounded-xl bg-[#F4F6FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <FileText className="size-5 shrink-0 text-[#98A2B3]" />
+                          <div className="min-w-0">
+                            <p className="break-all text-sm font-semibold">{submitted.name}</p>
+                            <p className="text-xs text-[#9CA3AF]">{submitted.size}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={pending !== null}
+                          aria-busy={pending === `download:${submitted.id}`}
+                          onClick={() => void downloadFile(submitted.id)}
+                          className="text-sm text-[#4B5563] disabled:opacity-60"
+                        >
+                          {pending === `download:${submitted.id}` ? "Downloading…" : "Download"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </section>
               ) : null}
+
+              <section className={card}>
+                <h2 className="text-base">Revision requests</h2>
+                {request.revisions.length === 0 ? (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="No revision requests yet"
+                    description="Change requests from the client will show up here."
+                  />
+                ) : (
+                  <ul className="mt-3 space-y-4">
+                    {request.revisions.map((revision) => (
+                      <li key={revision.id} className="rounded-xl bg-[#F4F6FB] px-4 py-3">
+                        <p className="text-xs text-[#9CA3AF]">
+                          {revision.createdAt} · {revision.targetFilename}
+                        </p>
+                        <p className="mt-2 text-sm text-[#121826]">{revision.note}</p>
+                        {revision.attachments.length ? (
+                          <ul className="mt-3 space-y-2">
+                            {revision.attachments.map((attachment) => (
+                              <li key={attachment.id}>
+                                <button
+                                  type="button"
+                                  disabled={pending !== null}
+                                  aria-busy={pending === `download:${attachment.id}`}
+                                  onClick={() => void downloadFile(attachment.id)}
+                                  className="text-sm font-medium text-[#3B5BDB] disabled:opacity-60"
+                                >
+                                  {pending === `download:${attachment.id}`
+                                    ? "Downloading…"
+                                    : attachment.filename}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
 
               <section className={card}>
                 <h2 className="text-base">Add Internal Note</h2>
@@ -175,31 +339,72 @@ export function RequestDetail({ id }: { id: string }) {
                 </p>
                 <textarea
                   value={note}
-                  onChange={(event) => {
-                    setNote(event.target.value);
-                    setNoteSaved(false);
-                  }}
+                  onChange={(event) => setNote(event.target.value)}
                   placeholder="Add note"
                   rows={5}
                   className="mt-4 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm outline-none placeholder:text-[#C5CAD3] focus:border-[#C9D0DE]"
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    updateRequest(request.id, { internalNote: note });
-                    setNoteSaved(true);
-                  }}
-                  className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white"
+                  disabled={pending !== null}
+                  aria-busy={pending === "note"}
+                  onClick={() => void saveNote()}
+                  className="mt-4 inline-flex rounded-full bg-[#0C1B4D] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
                 >
-                  Save note
+                  {pending === "note" ? "Saving…" : "Save note"}
                 </button>
-                {noteSaved ? (
-                  <p className="mt-3 text-sm text-[#34A35A]">Note saved.</p>
-                ) : null}
               </section>
             </div>
 
             <div className="grid gap-4">
+              {awaitingPrice ? (
+                <section className={card}>
+                  <h2 className="text-base">Price and payment link</h2>
+                  <p className="mt-2 text-sm text-[#6B7280]">
+                    Current price: {request.quotedAmount}
+                  </p>
+                  {isOwner ? (
+                    <>
+                      <label className="mt-4 block text-sm text-[#6B7280]">
+                        USD amount
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={price}
+                          onChange={(event) => setPrice(event.target.value)}
+                          placeholder="150.00"
+                          className="mt-2 w-full rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm text-[#121826] outline-none"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={pending !== null}
+                        aria-busy={pending === "generate"}
+                        onClick={() => void generateLink()}
+                        className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white disabled:opacity-60"
+                      >
+                        {pending === "generate" ? "Sending link…" : "Generate and email link"}
+                      </button>
+                      {request.paymentUrl ? (
+                        <button
+                          type="button"
+                          disabled={pending !== null}
+                          aria-busy={pending === "resend"}
+                          onClick={() => void resendLink()}
+                          className="mt-3 flex w-full items-center justify-center rounded-full border border-[#E6E8EE] px-5 py-3 text-sm font-medium disabled:opacity-60"
+                        >
+                          {pending === "resend" ? "Resending…" : "Resend link"}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="mt-3 text-sm text-[#6B7280]">
+                      An owner sets the price and emails the PayPal link.
+                    </p>
+                  )}
+                </section>
+              ) : null}
+
               <section className={card}>
                 <h2 className="text-base">Client</h2>
                 <div className="mt-3">
@@ -209,62 +414,66 @@ export function RequestDetail({ id }: { id: string }) {
                   <DetailRow label="Country" value={request.country} />
                   <DetailRow label="State / Region" value={request.stateRegion} />
                   <DetailRow label="Company" value={request.company} />
-                  <DetailRow
-                    label="Preferred Contact"
-                    value={request.preferredContact}
-                  />
+                  <DetailRow label="Preferred Contact" value={request.preferredContact} />
                 </div>
               </section>
 
               <section className={card}>
                 <h2 className="text-base">Actions</h2>
+                {awaitingPrice ? (
+                  <p className="mt-3 text-sm text-[#6B7280]">
+                    Draft upload and mark in progress are available after payment.
+                  </p>
+                ) : null}
+                {canStart ? (
+                  <button
+                    type="button"
+                    disabled={pending !== null}
+                    aria-busy={pending === "status"}
+                    onClick={() => void markInProgress()}
+                    className="mt-4 flex w-full items-center justify-center rounded-full bg-lime px-5 py-3 text-sm font-medium text-navy transition-colors hover:bg-lime/90 disabled:opacity-60"
+                  >
+                    {pending === "status" ? "Updating…" : "Mark in progress"}
+                  </button>
+                ) : null}
+                {awaitingPrice ? null : (
                 <button
+                  ref={uploadButtonRef}
                   type="button"
-                  onClick={openFilePicker}
-                  className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white"
+                  disabled={pending !== null}
+                  onClick={() => {
+                    setUploadOpen(true);
+                    setKind(request.status === "Approved" ? "final" : "draft");
+                  }}
+                  className="mt-4 flex w-full items-center justify-center rounded-full bg-[#0C1B4D] px-5 py-3 text-sm font-medium text-white disabled:opacity-60"
                 >
                   Upload document
                 </button>
-                {request.assignee ? (
-                  <p className="mt-4 text-center text-sm text-[#6B7280]">
-                    Assigned to{" "}
-                    <select
-                      aria-label="Assigned to"
-                      value={request.assignee}
-                      onChange={(event) =>
-                        updateRequest(request.id, {
-                          assignee: event.target.value || null,
-                        })
-                      }
-                      className="appearance-none bg-transparent font-semibold text-[#121826] outline-none"
-                    >
-                      {assignees.map((person) => (
-                        <option key={person} value={person}>
-                          {person}
-                        </option>
-                      ))}
-                      <option value="">Unassigned</option>
-                    </select>
-                  </p>
-                ) : (
-                  <select
-                    aria-label="Assign to"
-                    value=""
-                    onChange={(event) =>
-                      updateRequest(request.id, {
-                        assignee: event.target.value || null,
-                      })
-                    }
-                    className="mt-4 w-full appearance-none rounded-xl border border-[#E6E8EE] bg-white bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.9rem_center] bg-no-repeat px-4 py-3 text-sm text-[#9CA3AF] outline-none"
-                  >
-                    <option value="">Assign to..</option>
-                    {assignees.map((person) => (
-                      <option key={person} value={person}>
-                        {person}
-                      </option>
-                    ))}
-                  </select>
                 )}
+                <div className="mt-4">
+                  <label
+                    id="assign-to-label"
+                    className="block text-sm text-[#6B7280]"
+                  >
+                    Assign to
+                  </label>
+                  <Dropdown
+                    id="assign-to"
+                    labelledBy="assign-to-label"
+                    className="mt-2"
+                    disabled={pending !== null}
+                    buttonLabel={pending === "assign" ? "Assigning…" : undefined}
+                    value={request.assigneeId ?? ""}
+                    onChange={(assigneeId) => void assign(assigneeId)}
+                    options={[
+                      { value: "", label: "Unassigned" },
+                      ...staff.map((person) => ({
+                        value: person.id,
+                        label: person.name,
+                      })),
+                    ]}
+                  />
+                </div>
               </section>
             </div>
           </div>
@@ -272,17 +481,14 @@ export function RequestDetail({ id }: { id: string }) {
           <div>
             <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg">Documents</h2>
-              <button
-                type="button"
-                onClick={openFilePicker}
-                className="inline-flex rounded-full bg-[#0C1B4D] px-4 py-2.5 text-sm font-medium text-white"
-              >
-                + Upload document
-              </button>
             </div>
             {groups.length === 0 ? (
               <section className={card}>
-                <p className="text-sm text-[#6B7280]">No documents yet.</p>
+                <EmptyState
+                  icon={FileText}
+                  title="No documents yet"
+                  description="Uploaded drafts and finals will show up here."
+                />
               </section>
             ) : (
               <div className="grid gap-4">
@@ -290,40 +496,45 @@ export function RequestDetail({ id }: { id: string }) {
                   <section key={group.title} className={card}>
                     <h3 className="text-base">{group.title}</h3>
                     <ul className="mt-2">
-                      {group.files.map((file) => (
+                      {group.files.map((item) => (
                         <li
-                          key={file.id}
+                          key={item.id}
                           className="flex flex-col gap-3 border-b border-[#F3F4F6] py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex min-w-0 gap-3">
                             <FileText className="mt-0.5 size-5 shrink-0 text-[#98A2B3]" />
                             <div className="min-w-0">
                               <p className="text-xs text-[#9CA3AF]">
-                                {file.uploadedAt} · {file.author}
+                                {item.uploadedAt} · {item.author}
                               </p>
                               <p className="mt-0.5 truncate text-sm font-semibold">
-                                {file.filename}
+                                {item.filename}
                               </p>
-                              <p className="text-sm text-[#6B7280]">{file.note}</p>
+                              <p className="text-sm text-[#6B7280]">{item.note}</p>
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-4 sm:pl-4">
                             <button
                               type="button"
-                              onClick={() =>
-                                downloadAdminFile(file.filename, file.note)
-                              }
-                              className="rounded-full border border-[#E6E8EE] px-4 py-1.5 text-sm text-[#374151]"
+                              disabled={pending !== null}
+                              aria-busy={pending === `download:${item.id}`}
+                              onClick={() => void downloadFile(item.id)}
+                              className="rounded-full border border-[#E6E8EE] px-4 py-1.5 text-sm text-[#374151] disabled:opacity-60"
                             >
-                              Download
+                              {pending === `download:${item.id}` ? "Downloading…" : "Download"}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => removeDocument(request.id, file.id)}
-                              className="text-sm text-[#374151]"
-                            >
-                              Delete
-                            </button>
+                            {isOwner && item.kind === "draft" ? (
+                              <button
+                                type="button"
+                                disabled={pending !== null}
+                                onClick={() =>
+                                  setDraftToDelete({ id: item.id, filename: item.filename })
+                                }
+                                className="text-sm font-medium text-[#E25555] disabled:opacity-60"
+                              >
+                                Delete
+                              </button>
+                            ) : null}
                           </div>
                         </li>
                       ))}
@@ -335,6 +546,110 @@ export function RequestDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+      <Modal
+        open={uploadOpen}
+        onClose={closeUpload}
+        title="Upload document"
+        returnFocusRef={uploadButtonRef}
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitUpload();
+          }}
+        >
+          <div>
+            <label id="document-type-label" className="block text-sm text-[#6B7280]">
+              Document type
+            </label>
+            <Dropdown
+              id="document-type"
+              labelledBy="document-type-label"
+              className="mt-2"
+              value={kind}
+              onChange={(next) => setKind(next === "final" ? "final" : "draft")}
+              options={[
+                {
+                  value: "draft",
+                  label: "Draft for client review",
+                  disabled: request.status === "Approved",
+                },
+                {
+                  value: "final",
+                  label: "Final document",
+                  disabled: request.status !== "Approved",
+                },
+              ]}
+            />
+          </div>
+          <label className="block text-sm text-[#6B7280]">
+            Review note
+            <textarea
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+              rows={3}
+              placeholder="What should the client know about this file?"
+              className="mt-2 w-full resize-y rounded-xl border border-[#E6E8EE] px-4 py-3 text-sm text-[#121826] outline-none"
+            />
+          </label>
+          <FileDropzone
+            files={file ? [{ name: file.name }] : []}
+            multiple={false}
+            onAdd={(incoming) => setFile(incoming[0] ?? null)}
+            onRemove={() => setFile(null)}
+          />
+          <button
+            type="submit"
+            disabled={!file || pending === "upload"}
+            aria-busy={pending === "upload"}
+            className="inline-flex rounded-full bg-[#0C1B4D] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {pending === "upload" ? "Uploading…" : "Send to client"}
+          </button>
+        </form>
+      </Modal>
+      <Modal
+        open={draftToDelete !== null}
+        onClose={closeDelete}
+        title="Delete this draft?"
+        description={
+          draftToDelete
+            ? `${draftToDelete.filename} will be hidden from the admin panel. The client can still see and download it. After 60 days this file is permanently deleted and cannot be retrieved.`
+            : undefined
+        }
+        icon={
+          <span className="grid size-11 place-items-center rounded-full bg-[#FDECEC] text-[#E25555]">
+            <Trash2 className="size-5" aria-hidden />
+          </span>
+        }
+      >
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={draftToDelete !== null && pending === `delete:${draftToDelete.id}`}
+            onClick={closeDelete}
+            className="inline-flex rounded-full border border-[#E6E8EE] px-5 py-2.5 text-sm font-medium text-[#374151] disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={draftToDelete === null || pending === `delete:${draftToDelete.id}`}
+            aria-busy={draftToDelete !== null && pending === `delete:${draftToDelete.id}`}
+            onClick={() => {
+              if (draftToDelete) {
+                void deleteDocument(draftToDelete.id);
+              }
+            }}
+            className="inline-flex rounded-full bg-[#E25555] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {draftToDelete !== null && pending === `delete:${draftToDelete.id}`
+              ? "Deleting…"
+              : "Delete"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

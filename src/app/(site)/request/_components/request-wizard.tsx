@@ -2,36 +2,33 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { clsx } from "clsx";
-import { CloudUpload, FileCheck, X } from "lucide-react";
+import { Copy, FileCheck, FileText, Info } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Control, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import {
-  buildTrackedRequest,
   clearDraft,
   contactMethods,
-  createQuote,
-  createRequestId,
   emptyDraft,
   getDraftSnapshot,
   getServerDraft,
-  readSubmittedRequest,
-  saveSubmittedRequest,
   subscribeDraft,
   writeDraft,
   type ClientInfo,
+  type Confirmation,
   type RequestDraft,
   type UploadedFile,
 } from "@/content/request-draft";
 import {
-  formatAud,
   getService,
   services,
   type Service,
   type ServiceField,
 } from "@/content/services";
-import type { TrackedRequest } from "@/content/track-request";
+import { Dropdown } from "@/components/ui/dropdown";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 
 const steps = ["Details/Documents", "Client Info", "Review", "Confirmation"];
 const maxFileBytes = 10 * 1024 * 1024;
@@ -95,15 +92,11 @@ function resolveDraft(stored: RequestDraft | null, initialSlug: string) {
     }
   }
 
-  if (next.submittedId && !readSubmittedRequest(next.submittedId)) {
-    return { ...next, submittedId: null, step: Math.min(next.step, 2) };
-  }
-
-  if (next.submittedId && next.step !== 3) {
+  if (next.confirmation && next.step !== 3) {
     return { ...next, step: 3 };
   }
 
-  if (!next.submittedId && next.step > 2) {
+  if (!next.confirmation && next.step > 2) {
     return { ...next, step: 2 };
   }
 
@@ -134,10 +127,12 @@ function RequestFlow({
   const serviceLocked = Boolean(initialSlug && getService(initialSlug));
   const draft = resolveDraft(stored, initialSlug);
   const [fileError, setFileError] = useState("");
-  const submitted = draft.submittedId
-    ? (readSubmittedRequest(draft.submittedId) ?? null)
-    : null;
+  const [blobs, setBlobs] = useState<File[]>([]);
   const service = getService(draft.slug);
+  const visibleDraft = {
+    ...draft,
+    files: blobs.map((file) => ({ name: file.name, size: file.size })),
+  };
 
   function commit(next: RequestDraft) {
     writeDraft(next);
@@ -161,27 +156,29 @@ function RequestFlow({
       return;
     }
 
-    const names = new Set(draft.files.map((file) => file.name));
-    commit({
-      ...draft,
-      files: [...draft.files, ...accepted.filter((file) => !names.has(file.name))],
-    });
+    const names = new Set(blobs.map((file) => file.name));
+    const incoming = Array.from(list).filter(
+      (file) =>
+        accepted.some((item) => item.name === file.name) && !names.has(file.name),
+    );
+    setBlobs((current) => [...current, ...incoming]);
   }
 
   function removeFile(name: string) {
-    commit({
-      ...draft,
-      files: draft.files.filter((file) => file.name !== name),
-    });
+    setBlobs((current) => current.filter((file) => file.name !== name));
   }
 
   function chooseService(slug: string) {
+    if (draft.slug !== slug) {
+      setBlobs([]);
+    }
+
     commit({
       ...draft,
       slug,
       details: draft.slug === slug ? draft.details : {},
-      quote: null,
-      submittedId: null,
+      confirmation: null,
+      files: [],
     });
   }
 
@@ -189,26 +186,30 @@ function RequestFlow({
     <div className="flex flex-1 flex-col bg-white">
       <RequestStepper
         step={draft.step}
-        onStep={(step) =>
+        onStep={(step) => {
+          if (step > 2) {
+            return;
+          }
+
           commit({
             ...draft,
             step,
-            submittedId: step < 3 ? null : draft.submittedId,
-          })
-        }
+            confirmation: null,
+          });
+        }}
       />
       {draft.step === 0 ? (
         <DetailsStep
           service={service}
           serviceLocked={serviceLocked}
-          details={draft.details}
-          files={draft.files}
+          details={visibleDraft.details}
+          files={visibleDraft.files}
           fileError={fileError}
           onSlug={chooseService}
           onFiles={addFiles}
           onRemoveFile={removeFile}
           onContinue={(details) =>
-            commit({ ...draft, details, step: 1, submittedId: null })
+            commit({ ...draft, details, step: 1, confirmation: null, files: [] })
           }
         />
       ) : null}
@@ -221,27 +222,25 @@ function RequestFlow({
               ...draft,
               client,
               step: 2,
-              quote: draft.quote ?? createQuote(),
-              submittedId: null,
+              confirmation: null,
+              files: [],
             })
           }
         />
       ) : null}
-      {draft.step === 2 && service && draft.quote ? (
+      {draft.step === 2 && service ? (
         <ReviewStep
           service={service}
-          draft={draft}
-          onEdit={(step) => commit({ ...draft, step, submittedId: null })}
-          onContinue={() => {
-            const id = createRequestId();
-            const request = buildTrackedRequest(draft, service, id);
-            saveSubmittedRequest(request);
-            commit({ ...draft, step: 3, submittedId: id });
-          }}
+          draft={visibleDraft}
+          files={blobs}
+          onEdit={(step) => commit({ ...draft, step, confirmation: null, files: [] })}
+          onSubmitted={(confirmation) =>
+            commit({ ...draft, step: 3, confirmation, files: [] })
+          }
         />
       ) : null}
-      {draft.step === 3 && submitted ? (
-        <ConfirmationStep request={submitted} onHome={clearDraft} />
+      {draft.step === 3 && draft.confirmation ? (
+        <ConfirmationStep confirmation={draft.confirmation} onHome={clearDraft} />
       ) : null}
     </div>
   );
@@ -317,7 +316,6 @@ function DetailsStep({
   onContinue: (details: Record<string, string>) => void;
 }) {
   const [serviceError, setServiceError] = useState("");
-  const uploadId = useId();
 
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-12">
@@ -329,53 +327,7 @@ function DetailsStep({
       </p>
 
       <div className="mt-8 rounded-2xl border border-line bg-card p-4 sm:p-5">
-        <label
-          htmlFor={uploadId}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault();
-            onFiles(event.dataTransfer.files);
-          }}
-          className="flex cursor-pointer flex-col items-center rounded-2xl bg-navy-wash px-6 py-14 text-center"
-        >
-          <CloudUpload className="h-8 w-8 text-navy" strokeWidth={1.5} aria-hidden />
-          <span className="mt-4 text-sm text-muted">
-            PDF, DOC, DOCX, JPG, PNG — max 10 MB per file
-          </span>
-          <input
-            id={uploadId}
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            className="sr-only"
-            onChange={(event) => {
-              if (event.target.files) {
-                onFiles(event.target.files);
-              }
-              event.target.value = "";
-            }}
-          />
-        </label>
-        {files.length ? (
-          <ul className="mt-4 space-y-2">
-            {files.map((file) => (
-              <li
-                key={file.name}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2 text-sm"
-              >
-                <span className="truncate">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveFile(file.name)}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-notice hover:text-ink"
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <FileDropzone files={files} onAdd={onFiles} onRemove={onRemoveFile} />
         {fileError ? (
           <p className="mt-3 text-sm text-red-700" role="alert">
             {fileError}
@@ -430,23 +382,27 @@ function ServiceSelect({
   slug: string;
   onSlug: (slug: string) => void;
 }) {
+  const selectId = useId();
+  const labelId = useId();
+
   return (
-    <label className="block text-sm font-semibold text-ink">
-      Which service do you need?
-      <span className="text-red-700"> *</span>
-      <select
+    <div>
+      <label id={labelId} className="block text-sm font-semibold text-ink">
+        Which service do you need?
+        <span className="text-red-700"> *</span>
+      </label>
+      <Dropdown
+        id={selectId}
+        labelledBy={labelId}
+        className="mt-2"
         value={slug}
-        onChange={(event) => onSlug(event.target.value)}
-        className={clsx(fieldClass, "mt-2")}
-      >
-        <option value="">Select a service</option>
-        {services.map((item) => (
-          <option key={item.slug} value={item.slug}>
-            {item.title}
-          </option>
-        ))}
-      </select>
-    </label>
+        onChange={onSlug}
+        options={[
+          { value: "", label: "Select a service" },
+          ...services.map((item) => ({ value: item.slug, label: item.title })),
+        ]}
+      />
+    </div>
   );
 }
 
@@ -501,14 +457,23 @@ function ServiceDetailsForm({
               ) : null}
             </div>
           )}
-          {service.fields.map((field) => (
-            <ServiceFieldInput
-              key={field.id}
-              field={field}
-              registration={form.register(field.id)}
-              error={form.formState.errors[field.id]?.message}
-            />
-          ))}
+          {service.fields.map((field) =>
+            field.type === "select" ? (
+              <ServiceSelectField
+                key={field.id}
+                field={field}
+                control={form.control}
+                error={form.formState.errors[field.id]?.message}
+              />
+            ) : (
+              <ServiceFieldInput
+                key={field.id}
+                field={field}
+                registration={form.register(field.id)}
+                error={form.formState.errors[field.id]?.message}
+              />
+            ),
+          )}
         </div>
       </div>
       <div className="mt-8 flex justify-center">
@@ -520,6 +485,56 @@ function ServiceDetailsForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function ServiceSelectField({
+  field,
+  control,
+  error,
+}: {
+  field: ServiceField;
+  control: Control<Record<string, string>>;
+  error?: string;
+}) {
+  const inputId = useId();
+  const labelId = useId();
+
+  return (
+    <div>
+      <label id={labelId} className="block text-sm font-semibold text-ink">
+        {field.label}
+        {field.required ? <span className="text-red-700"> *</span> : null}
+      </label>
+      <Controller
+        name={field.id}
+        control={control}
+        render={({ field: input }) => (
+          <Dropdown
+            id={inputId}
+            labelledBy={labelId}
+            name={input.name}
+            value={input.value ?? ""}
+            onChange={input.onChange}
+            onBlur={input.onBlur}
+            ariaInvalid={Boolean(error)}
+            className="mt-2"
+            options={[
+              { value: "", label: field.placeholder },
+              ...(field.options ?? []).map((option) => ({
+                value: option,
+                label: option,
+              })),
+            ]}
+          />
+        )}
+      />
+      {error ? (
+        <p className="mt-1 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -549,21 +564,6 @@ function ServiceFieldInput({
           className={clsx(fieldClass, "mt-2 resize-y")}
           {...registration}
         />
-      ) : null}
-      {field.type === "select" ? (
-        <select
-          id={inputId}
-          aria-invalid={error ? true : undefined}
-          className={clsx(fieldClass, "mt-2")}
-          {...registration}
-        >
-          <option value="">{field.placeholder}</option>
-          {field.options?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
       ) : null}
       {field.type === "text" || field.type === "date" ? (
         <input
@@ -751,14 +751,47 @@ function TextField({
 function ReviewStep({
   service,
   draft,
+  files,
   onEdit,
-  onContinue,
+  onSubmitted,
 }: {
   service: Service;
   draft: RequestDraft;
+  files: File[];
   onEdit: (step: number) => void;
-  onContinue: () => void;
+  onSubmitted: (confirmation: Confirmation) => void;
 }) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setError("");
+    setBusy(true);
+    const body = new FormData();
+    body.set("serviceSlug", service.slug);
+    body.set("client", JSON.stringify(draft.client));
+    body.set("details", JSON.stringify(draft.details));
+    files.forEach((file) => body.append("files", file));
+
+    try {
+      const response = await fetch("/api/requests", { method: "POST", body });
+      const payload = (await response.json()) as {
+        error?: string;
+        confirmation?: Confirmation;
+      };
+
+      if (!response.ok || !payload.confirmation) {
+        setError(payload.error || "Could not submit the request.");
+        return;
+      }
+
+      onSubmitted(payload.confirmation);
+    } catch {
+      setError("Could not submit the request.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const clientRows = [
     ["Name", draft.client.fullName],
     ["Email", draft.client.email],
@@ -772,7 +805,7 @@ function ReviewStep({
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-semibold tracking-tight text-ink">
-        Review / payment
+        Review your request
       </h1>
       <p className="mt-2 text-sm text-muted">{service.title}</p>
 
@@ -814,47 +847,51 @@ function ReviewStep({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">No documents attached.</p>
+            <EmptyState
+              icon={FileText}
+              title="No documents attached"
+              description="You can go back and upload files, or submit without them."
+            />
           )}
         </ReviewCard>
 
-        <article className="rounded-2xl border border-line bg-card px-5 py-5 sm:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <h2 className="text-base font-semibold text-ink">Quote Reference</h2>
-            <p className="text-sm font-semibold text-ink">
-              {draft.quote?.reference}
+        <aside
+          role="note"
+          className="flex gap-4 rounded-2xl border border-gold/50 border-l-4 border-l-gold bg-navy-wash px-5 py-5 sm:px-6"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-light text-navy">
+            <Info className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-navy-bright uppercase">
+              For your review
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-ink">
+              What happens next
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-navy-mid">
+              Submit the request and files now. DTA reviews them and emails a
+              PayPal link for the quoted USD amount. Work starts after that
+              payment is confirmed.
             </p>
           </div>
-          <p className="mt-1 text-xs text-muted">Expires: {draft.quote?.expires}</p>
-          <dl className="mt-5 space-y-3 text-sm">
-            <div className="flex items-start justify-between gap-4">
-              <dt className="text-muted">Service fee — {service.title}</dt>
-              <dd className="font-medium text-ink">{formatAud(service.price)}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Tax</dt>
-              <dd>—</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Discount</dt>
-              <dd>—</dd>
-            </div>
-            <div className="flex justify-between gap-4 border-t border-line pt-3 font-semibold text-ink">
-              <dt>Total</dt>
-              <dd>{formatAud(service.price)}</dd>
-            </div>
-          </dl>
-        </article>
+        </aside>
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex flex-col items-center gap-3">
         <button
           type="button"
-          onClick={onContinue}
-          className="rounded-full bg-navy px-10 py-2.5 text-sm font-medium text-white hover:bg-navy/90"
+          onClick={() => void submit()}
+          disabled={busy}
+          className="rounded-full bg-navy px-6 py-3 text-sm font-medium text-white hover:bg-navy/90 disabled:opacity-60"
         >
-          Next
+          {busy ? "Submitting…" : "Submit request"}
         </button>
+        {error ? (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -889,60 +926,104 @@ function ReviewCard({
 }
 
 function ConfirmationStep({
-  request,
+  confirmation,
   onHome,
 }: {
-  request: TrackedRequest;
+  confirmation: Confirmation;
   onHome: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const rows = [
-    ["Service", request.title],
-    ["Payment", request.payment.status.toUpperCase()],
-    ["Turnaround", request.estimatedCompletion],
-    ["Next step", "Await confirmation email"],
+    ["Service", confirmation.title],
+    ["Status", "Pending review"],
+    ["Payment", "Link emailed after review"],
+    ["Turnaround", confirmation.turnaround],
+    ["Next step", "Watch for the payment email"],
   ];
 
+  async function copyRequestId() {
+    try {
+      await navigator.clipboard.writeText(confirmation.id);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center px-4 py-16 text-center">
-      <FileCheck className="h-12 w-12 text-navy" strokeWidth={1.5} aria-hidden />
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-ink">
-        Request Submitted Successfully
-      </h1>
-      <p className="mt-3 max-w-md text-sm leading-6 text-muted">
-        We&apos;ve received your request and will be in touch shortly. Please
-        save your Request ID.
-      </p>
-      <div className="mt-8 w-full rounded-2xl bg-navy-wash px-6 py-6">
-        <p className="text-sm text-muted">Your Request ID</p>
-        <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">
-          {request.id}
+    <section className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
+      <div className="overflow-hidden rounded-[1.75rem] bg-[radial-gradient(120%_90%_at_50%_0%,#24367f_0%,#0d1b4b_46%,#070f2c_100%)] px-5 py-10 text-center sm:px-10 sm:py-14">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-lime text-navy ring-4 ring-violet/50">
+          <FileCheck className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+        </span>
+        <h1 className="mt-6 text-3xl font-extrabold leading-none tracking-tight sm:text-4xl">
+          <span className="block text-lime">Request submitted</span>
+          <span className="mt-2 block text-white">successfully</span>
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-gold">
+          We received your request. DTA will review the files and email a PayPal
+          link for the quoted amount. Please save your Request ID.
         </p>
-      </div>
-      <dl className="mt-6 w-full rounded-2xl border border-line px-5 py-4 text-left text-sm">
-        {rows.map(([label, value]) => (
-          <div
-            key={label}
-            className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-b-0"
-          >
-            <dt className="text-muted">{label}</dt>
-            <dd className="font-semibold text-ink">{value}</dd>
+        <div className="mx-auto mt-8 max-w-lg rounded-2xl bg-white/10 px-5 py-6 sm:px-6">
+          <p className="text-sm text-gold">Your Request ID</p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              {confirmation.id}
+            </p>
+            <button
+              type="button"
+              onClick={() => void copyRequestId()}
+              aria-label="Copy request ID"
+              className="group relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-lime hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+            >
+              <Copy className="h-4 w-4" aria-hidden="true" />
+              <span
+                role="status"
+                className={clsx(
+                  "pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium whitespace-nowrap text-navy opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+                  copied && "opacity-100",
+                )}
+              >
+                {copied ? "Copied" : "Copy request ID"}
+              </span>
+            </button>
           </div>
-        ))}
-      </dl>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link
-          href={`/track-request/${request.id}`}
-          className="rounded-full bg-navy px-5 py-2.5 text-sm font-medium text-white hover:bg-navy/90"
-        >
-          View request workspace
-        </Link>
-        <Link
-          href="/"
-          onClick={onHome}
-          className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-ink hover:border-navy"
-        >
-          Go home
-        </Link>
+        </div>
+        <dl className="mx-auto mt-6 max-w-lg rounded-2xl bg-white px-5 py-2 text-left text-sm">
+          {rows.map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-b-0"
+            >
+              <dt className="text-muted">{label}</dt>
+              <dd className="text-right font-semibold text-ink">
+                {label === "Status" ? (
+                  <span className="inline-flex rounded-full bg-lime px-3 py-1 text-xs font-semibold text-navy">
+                    {value}
+                  </span>
+                ) : (
+                  value
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href={`/track-request/${confirmation.id}`}
+            className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+          >
+            View request workspace
+          </Link>
+          <Link
+            href="/"
+            onClick={onHome}
+            className="rounded-full border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
+          >
+            Go home
+          </Link>
+        </div>
       </div>
     </section>
   );

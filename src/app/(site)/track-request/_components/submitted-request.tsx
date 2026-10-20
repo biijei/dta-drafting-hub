@@ -60,5 +60,5 @@ export function SubmittedRequestWorkspace({ id }: { id: string }) {
     );
   }
 
-  return <RequestWorkspace request={request} />;
+  return <RequestWorkspace request={request} onRefresh={async () => undefined} />;
 }

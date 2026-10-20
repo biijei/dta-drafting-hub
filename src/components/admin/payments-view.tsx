@@ -1,7 +1,9 @@
 "use client";
 
+import { CreditCard } from "lucide-react";
 import { useMemo, useState } from "react";
-import { paymentStats, paymentStatuses } from "@/content/admin";
+import { paymentStatuses } from "@/content/admin";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAdmin } from "@/lib/admin-store";
 import { FilterMenu } from "./filter-menu";
 import { StatusPill } from "./status-pill";
@@ -15,15 +17,12 @@ export function PaymentsView() {
 
   const payments = useMemo(
     () =>
-      data.payments.filter((payment) => {
-        if (!payment.onPaymentsPage) {
-          return false;
-        }
-
-        return status === "All" || payment.status === status;
-      }),
+      data.payments.filter(
+        (payment) => status === "All" || payment.status === status,
+      ),
     [data.payments, status],
   );
+  const paymentStats = data.paymentSummary;
 
   return (
     <div>
@@ -75,9 +74,11 @@ export function PaymentsView() {
 
       <section className="mt-4 overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         {payments.length === 0 ? (
-          <p className="px-6 py-10 text-sm text-[#6B7280]">
-            No payments match this filter.
-          </p>
+          <EmptyState
+            icon={CreditCard}
+            title="No payments match this filter"
+            description="Try another status."
+          />
         ) : (
           <ul>
             {payments.map((payment) => (

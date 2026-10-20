@@ -12,22 +12,22 @@ export const homeProcessSteps = [
   {
     number: 2,
     title: "Submit your request",
-    description: "Complete a structured form with your requirements.",
+    description: "Share your details and any supporting files.",
   },
   {
     number: 3,
-    title: "Upload documents",
-    description: "Securely attach any supporting files.",
+    title: "Pay your quote",
+    description: "Pay the emailed PayPal link to start the work.",
   },
   {
     number: 4,
-    title: "Review your draft",
-    description: "We prepare your document and send it for your review.",
+    title: "We prepare your document",
+    description: "A specialist drafts it after payment is confirmed.",
   },
   {
     number: 5,
-    title: "Approve & download",
-    description: "Approve the final document and download it securely.",
+    title: "Review and download",
+    description: "Approve the draft, or request changes, then download it.",
   },
 ];
 
@@ -64,7 +64,7 @@ export const homeFaqs = [
     id: "turnaround",
     question: "How long does a typical request take?",
     answer:
-      "Turnaround depends on the service and complexity. Most documents are completed within 2–7 business days. You’ll receive a timeline in your quote.",
+      "Turnaround depends on the service and complexity. Most documents are completed within 2–7 business days after payment is confirmed. Each service lists its expected turnaround.",
   },
   {
     id: "account",

@@ -1,13 +1,17 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { isPillStatus, StatusPill } from "@/components/admin/status-pill";
 import type { TrackedRequest } from "@/content/track-request";
+import { downloadStoredFile } from "@/lib/download-file";
+import { ApproveConfirm } from "./approve-confirm";
 
 type OverviewPanelProps = {
   request: TrackedRequest;
   onRequestChange: () => void;
   onViewDocument: () => void;
+  onRefresh: () => Promise<void>;
 };
 
 const statusFields = (request: TrackedRequest) => [
@@ -22,14 +26,136 @@ const statusFields = (request: TrackedRequest) => [
   },
 ];
 
+const outlineAction =
+  "rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change disabled:opacity-50";
+
+const payAction =
+  "inline-flex rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime";
+
+const limeAction =
+  "rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-lime/90 disabled:opacity-60";
+
+function firstFinalFile(request: TrackedRequest) {
+  for (const group of request.documents) {
+    const file = group.files.find((item) => item.kind === "final");
+    if (file) return file;
+  }
+
+  return undefined;
+}
+
+function OverviewAction({
+  request,
+  onRequestChange,
+}: {
+  request: TrackedRequest;
+  onRequestChange: () => void;
+}) {
+  const awaitingQuote = request.status === "Pending Review";
+  const awaitingPayment = request.status === "Awaiting Payment";
+
+  if (awaitingQuote || awaitingPayment) {
+    if (awaitingPayment && request.paymentUrl) {
+      return (
+        <a href={request.paymentUrl} className={payAction}>
+          Pay with PayPal
+        </a>
+      );
+    }
+
+    return (
+      <button type="button" disabled className={outlineAction}>
+        Pay with PayPal
+      </button>
+    );
+  }
+
+  const finished = request.status === "Approved" || request.status === "Completed";
+
+  return (
+    <button
+      type="button"
+      onClick={onRequestChange}
+      disabled={finished || !request.canRevise}
+      className={outlineAction}
+    >
+      Request change
+    </button>
+  );
+}
+
 export function OverviewPanel({
   request,
   onRequestChange,
   onViewDocument,
+  onRefresh,
 }: OverviewPanelProps) {
-  const [approved, setApproved] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const approveButtonRef = useRef<HTMLButtonElement>(null);
+  const completed = request.status === "Completed";
+  const finalFile = completed ? firstFinalFile(request) : undefined;
+
+  function openConfirm() {
+    if (pending) return;
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  function closeConfirm() {
+    if (pending) return;
+    setConfirmOpen(false);
+  }
+
+  async function downloadFinal() {
+    if (!finalFile || downloading) return;
+    setError("");
+    setDownloading(true);
+
+    try {
+      await downloadStoredFile(finalFile.id);
+    } catch (downloadError: unknown) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Could not download the file.",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function approve() {
+    if (pending) return;
+    setError("");
+    setPending(true);
+
+    try {
+      const response = await fetch(`/api/track/requests/${request.id}/approve`, {
+        method: "POST",
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(body.error || "Could not approve the document.");
+        return;
+      }
+
+      setMessage("Document approved.");
+      await onRefresh();
+      setConfirmOpen(false);
+    } catch {
+      setError("Could not approve the document.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
+    <>
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
       <div className="space-y-4">
         <article className="rounded-2xl border border-line bg-card px-6 py-6">
@@ -45,9 +171,16 @@ export function OverviewPanel({
                 <dt className="text-sm text-gray">{field.label}</dt>
                 <dd className="mt-2">
                   {field.pill ? (
-                    <span className="inline-flex rounded-full bg-gold-light px-3 py-1 text-sm font-medium text-ink">
-                      {field.value}
-                    </span>
+                    isPillStatus(field.value) ? (
+                      <StatusPill
+                        status={field.value}
+                        className="px-3 py-1 text-sm"
+                      />
+                    ) : (
+                      <span className="inline-flex rounded-full bg-[#E7EBF3] px-3 py-1 text-sm font-medium text-[#6D7C99]">
+                        {field.value}
+                      </span>
+                    )
                   ) : (
                     <span className="text-sm font-semibold text-ink">
                       {field.value}
@@ -66,33 +199,53 @@ export function OverviewPanel({
           <p className="mt-1 text-sm text-change">
             {request.reviewNotice.description}
           </p>
-          {approved ? (
+          {message ? (
             <p className="mt-4 text-sm font-medium text-navy" role="status">
-              Document approved.
+              {message}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {error}
             </p>
           ) : null}
           <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setApproved(true)}
-              className="rounded-full border border-check bg-approve px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-approve/90"
-            >
-              Approve document
-            </button>
-            <button
-              type="button"
-              onClick={onRequestChange}
-              className="rounded-full border border-change bg-transparent px-5 py-2.5 text-sm font-medium text-change"
-            >
-              Request change
-            </button>
-            <button
-              type="button"
-              onClick={onViewDocument}
-              className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted"
-            >
-              View document
-            </button>
+            {request.canApprove ? (
+              <button
+                ref={approveButtonRef}
+                type="button"
+                onClick={openConfirm}
+                disabled={pending}
+                aria-busy={pending}
+                className={limeAction}
+              >
+                {pending ? "Approving…" : "Approve document"}
+              </button>
+            ) : null}
+            <OverviewAction
+              request={request}
+              onRequestChange={onRequestChange}
+            />
+            {completed ? (
+              <button
+                type="button"
+                onClick={() => void downloadFinal()}
+                disabled={!finalFile || downloading}
+                aria-busy={downloading}
+                className={limeAction}
+              >
+                {downloading ? "Downloading…" : "Download final document"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onViewDocument}
+                disabled={request.documents.length === 0}
+                className="rounded-full border border-muted bg-transparent px-5 py-2.5 text-sm font-medium text-muted disabled:opacity-50"
+              >
+                View document
+              </button>
+            )}
           </div>
         </article>
       </div>
@@ -126,5 +279,14 @@ export function OverviewPanel({
         </ol>
       </article>
     </div>
+    <ApproveConfirm
+      open={confirmOpen}
+      pending={pending}
+      error={error}
+      onClose={closeConfirm}
+      onConfirm={() => void approve()}
+      returnFocusRef={approveButtonRef}
+    />
+    </>
   );
 }

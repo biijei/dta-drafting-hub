@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { requestStatuses } from "@/content/admin";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAdmin } from "@/lib/admin-store";
 import { FilterMenu } from "./filter-menu";
 import { StatusPill } from "./status-pill";
@@ -16,16 +17,11 @@ export function RequestsView() {
   const requests = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
-    const filtering = needle.length > 0 || status !== "All";
-
     return data.requests.filter((request) => {
-      if (!filtering && !request.featuredOnOverview) {
-        return false;
-      }
-
       const matchesQuery =
         needle.length === 0 ||
-        request.displayId.toLowerCase().includes(needle);
+        request.displayId.toLowerCase().includes(needle) ||
+        request.clientName.toLowerCase().includes(needle);
       const matchesStatus = status === "All" || request.status === status;
 
       return matchesQuery && matchesStatus;
@@ -55,9 +51,11 @@ export function RequestsView() {
 
       <section className="mt-4 overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         {requests.length === 0 ? (
-          <p className="px-6 py-10 text-sm text-[#6B7280]">
-            No requests match this filter.
-          </p>
+          <EmptyState
+            icon={Search}
+            title="No requests match this filter"
+            description="Try another status or search."
+          />
         ) : (
           <ul>
             {requests.map((request) => (

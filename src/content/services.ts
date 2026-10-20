@@ -114,7 +114,7 @@ export const services: Service[] = [
     revisions,
     price: 150,
     pricingNote:
-      "Pricing depends on document complexity and length. A quote will be provided after reviewing your request.",
+      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a PayPal link for the quoted USD amount.",
     deliverables: [
       "Final formatted PDF",
       "Revision round",
@@ -388,7 +388,7 @@ export const services: Service[] = [
     revisions,
     price: 180,
     pricingNote:
-      "Business documents are quoted based on scope and complexity.",
+      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a PayPal link for the quoted USD amount.",
     deliverables: [
       "Business document(s)",
       "Formatted for use",
@@ -616,11 +616,15 @@ export function getService(slug: string) {
 }
 
 export function formatDollars(amount: number) {
-  return `$${amount}`;
+  return `USD $${amount}`;
 }
 
-export function formatAud(amount: number) {
-  return `AUD $${amount.toFixed(2)}`;
+export function formatUsd(amount: number) {
+  return `USD $${amount.toFixed(2)}`;
+}
+
+export function formatUsdCents(cents: number) {
+  return formatUsd(cents / 100);
 }
 
 export function requestHref(slug: string) {

@@ -11,10 +11,18 @@ export const workspaceTabs = [
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 
 export type DocumentFile = {
+  id: string;
   filename: string;
   uploadedAt: string;
   author: string;
   note: string;
+  kind: "client_upload" | "draft" | "revision" | "final";
+};
+
+export type ActivityItem = {
+  id: string;
+  message: string;
+  at: string;
 };
 
 export type DocumentGroup = {
@@ -25,6 +33,14 @@ export type DocumentGroup = {
 export type ProcessStep = {
   label: string;
   complete: boolean;
+};
+
+export type TrackedRevision = {
+  id: string;
+  note: string;
+  createdAt: string;
+  targetFilename: string;
+  attachments: { id: string; filename: string }[];
 };
 
 export type TrackedRequest = {
@@ -47,6 +63,11 @@ export type TrackedRequest = {
     method: string;
     date: string;
   };
+  paymentUrl: string | null;
+  activity: ActivityItem[];
+  revisions: TrackedRevision[];
+  canApprove: boolean;
+  canRevise: boolean;
 };
 
 const employmentNote =
@@ -55,10 +76,12 @@ const employmentNote =
 const employmentFile = (
   filename: string,
 ): DocumentFile => ({
+  id: filename,
   filename,
   uploadedAt: "23 September 2026 at 11:30 am",
   author: "DTA Admin",
   note: employmentNote,
+  kind: "draft",
 });
 
 const sampleRequest: TrackedRequest = {
@@ -99,10 +122,15 @@ const sampleRequest: TrackedRequest = {
   payment: {
     status: "Paid",
     transactionId: "PAY-482-01",
-    amount: "AUD $220.00",
-    method: "Credit Card",
+    amount: "USD $220.00",
+    method: "PayPal",
     date: "20 September 2026 at 06:22 pm",
   },
+  paymentUrl: null,
+  activity: [],
+  revisions: [],
+  canApprove: true,
+  canRevise: true,
 };
 
 export function getTrackedRequest(id: string) {

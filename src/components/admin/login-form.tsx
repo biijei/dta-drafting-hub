@@ -1,29 +1,63 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { readSession, writeSession } from "@/lib/admin-store";
+
+function safeAdminPath(value: string | null) {
+  if (!value || !value.startsWith("/admin/") || value.startsWith("//") || value.includes("://")) {
+    return "/admin";
+  }
+
+  return value;
+}
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const destination = safeAdminPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (readSession()) {
-      router.replace("/admin");
-    }
-  }, [router]);
+    void fetch("/api/admin/me").then((response) => {
+      if (response.ok) {
+        router.replace(destination);
+      }
+    });
+  }, [destination, router]);
 
-  function signIn() {
+  async function signIn() {
+    if (pending) return;
+
     if (!email.trim() || !password.trim()) {
       setError("Enter your email and password.");
       return;
     }
 
-    writeSession(email.trim());
-    router.replace("/admin");
+    setError("");
+    setPending(true);
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(body.error || "Could not sign in.");
+        setPending(false);
+        return;
+      }
+
+      router.replace(destination);
+    } catch {
+      setError("Could not sign in.");
+      setPending(false);
+    }
   }
 
   return (
@@ -80,9 +114,11 @@ export function LoginForm() {
             <button
               type="button"
               onClick={signIn}
-              className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white"
+              disabled={pending}
+              aria-busy={pending}
+              className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#0C1B4D] px-8 py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
-              Login
+              {pending ? "Signing in…" : "Login"}
             </button>
           </div>
         </form>

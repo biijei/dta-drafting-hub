@@ -1,3 +1,4 @@
+import { BadgeCheck, FileSearch, PenLine, Scale } from "lucide-react";
 import { Great_Vibes } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,10 +11,10 @@ const script = Great_Vibes({
 });
 
 const experts = [
-  "/icons/hero-first-user.svg",
-  "/icons/hero-second-user.svg",
-  "/icons/hero-third-user.svg",
-  "/icons/hero-fouth-user.svg",
+  { label: "Review", icon: FileSearch, background: "#97BAF9" },
+  { label: "Drafting", icon: PenLine, background: "#FCEF71" },
+  { label: "Expertise", icon: Scale, background: "#8BABF9" },
+  { label: "Approval", icon: BadgeCheck, background: "#8CD1F7" },
 ];
 
 export function HomeHero() {
@@ -68,16 +69,14 @@ export function HomeHero() {
 
         <div className="relative mx-auto mt-8 flex max-w-3xl flex-col items-center">
           <div className="flex -space-x-3">
-            {experts.map((src) => (
-              <Image
-                key={src}
-                src={src}
-                alt=""
-                width={48}
-                height={48}
-                unoptimized
-                className="h-12 w-12"
-              />
+            {experts.map(({ label, icon: Icon, background }) => (
+              <span
+                key={label}
+                className="grid h-12 w-12 place-items-center rounded-full text-navy"
+                style={{ backgroundColor: background }}
+              >
+                <Icon className="h-5 w-5" strokeWidth={2} aria-hidden />
+              </span>
             ))}
           </div>
           <p className={`${script.className} mt-3 flex flex-wrap justify-center gap-4 leading-none text-white`}>

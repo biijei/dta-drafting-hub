@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col bg-surface font-sans text-ink">
         {children}
+        <Toaster />
       </body>
     </html>
   );

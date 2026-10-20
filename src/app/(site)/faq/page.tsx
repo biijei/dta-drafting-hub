@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { FaqSection } from "./_components/faq-section";
-import { PageHero } from "@/components/ui/page-hero";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions",
@@ -9,10 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function FaqPage() {
-  return (
-    <>
-      <PageHero variant="inset" title="Frequently Asked Questions" />
-      <FaqSection />
-    </>
-  );
+  return <FaqSection />;
 }
