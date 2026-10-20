@@ -7,7 +7,13 @@ import { type FormEvent, useState } from "react";
 const fieldClass =
   "mt-2 w-full rounded-lg border border-white/15 bg-white px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-lime focus:ring-2 focus:ring-lime";
 
-export function LookupForm({ initialId = "" }: { initialId?: string }) {
+export function LookupForm({
+  initialId = "",
+  onVerified,
+}: {
+  initialId?: string;
+  onVerified?: (id: string) => void;
+}) {
   const router = useRouter();
   const [requestId, setRequestId] = useState(initialId);
   const [email, setEmail] = useState("");
@@ -36,6 +42,11 @@ export function LookupForm({ initialId = "" }: { initialId?: string }) {
 
     if (!response.ok || !body.id) {
       setError(body.error || "We couldn't find a request with that ID and email.");
+      return;
+    }
+
+    if (onVerified) {
+      onVerified(body.id);
       return;
     }
 

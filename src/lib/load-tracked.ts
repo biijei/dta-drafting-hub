@@ -16,8 +16,12 @@ export async function loadTracked(publicId: string) {
     .eq("id", requestUuid)
     .maybeSingle();
 
-  if (!request || request.public_id.toUpperCase() !== publicId.trim().toUpperCase()) {
+  if (!request) {
     return { status: 404 as const, request: null };
+  }
+
+  if (request.public_id.toUpperCase() !== publicId.trim().toUpperCase()) {
+    return { status: 401 as const, request: null };
   }
 
   const [filesRes, activityRes, paymentRes, revisionsRes, assigneeRes] = await Promise.all([

@@ -1,5 +1,5 @@
 import { sendPaymentReceivedAlert, sendWorkStarted } from "@/lib/mail";
-import { centsFromPaypal, type PayPalOrder } from "@/lib/paypal";
+import { centsFromPaypal, methodFromOrder, type PayPalOrder } from "@/lib/paypal";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export async function markRequestPaid(orderId: string, order: PayPalOrder) {
@@ -16,11 +16,21 @@ export async function markRequestPaid(orderId: string, order: PayPalOrder) {
   }
 
   const supabase = createServiceClient();
-  const { data: request } = await supabase
+  const customId = order.purchase_units?.[0]?.custom_id ?? null;
+  const byOrder = await supabase
     .from("requests")
     .select("id, public_id, amount_cents, status, client_email, client_name, service_title")
     .eq("paypal_order_id", orderId)
     .maybeSingle();
+  const byRequest =
+    byOrder.data || !customId
+      ? { data: null }
+      : await supabase
+          .from("requests")
+          .select("id, public_id, amount_cents, status, client_email, client_name, service_title")
+          .eq("id", customId)
+          .maybeSingle();
+  const request = byOrder.data ?? byRequest.data;
 
   if (!request) {
     throw new Error("Request was not found for this PayPal order.");
@@ -43,7 +53,7 @@ export async function markRequestPaid(orderId: string, order: PayPalOrder) {
       paypal_capture_id: capture.id,
       amount_cents: cents,
       status: "Paid",
-      method: "PayPal",
+      method: methodFromOrder(order),
       paid_at: new Date().toISOString(),
     });
 

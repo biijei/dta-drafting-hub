@@ -161,7 +161,7 @@ export async function sendRequestReceived(input: {
     text: [
       `We received your ${input.title} request and will review the files you sent.`,
       `Your Request ID is ${input.requestId}.`,
-      `After review, we will email a PayPal link for the quoted amount. Work starts after that payment is confirmed.`,
+      `After review, we will email a payment link for the quoted amount. You can pay by card or PayPal, and a card payment does not need a PayPal account. Work starts after that payment is confirmed.`,
       `Track it at ${href} using this Request ID and this email address.`,
     ].join("\n"),
   });
@@ -181,7 +181,7 @@ export async function sendNewRequestAlert(input: {
     text: [
       `${input.clientName} submitted a ${input.title} request.`,
       `Request ID: ${input.requestId}`,
-      "Review the files, set the USD price, and email the PayPal link.",
+      "Review the files, set the USD price, and email the payment link.",
       href,
     ].join("\n"),
   });
@@ -197,12 +197,13 @@ export async function sendPaymentLink(input: {
   await sendMail({
     to: input.to,
     subject: `Pay for your request ${input.requestId}`,
-    action: { label: "Pay with PayPal", href: input.url },
+    action: { label: "Pay now", href: input.url },
     text: [
       `The price for your ${input.title} request is ${input.amount}.`,
-      `Pay with PayPal: ${input.url}`,
+      `Pay by card, PayPal, or another method offered at checkout: ${input.url}`,
+      `A card payment does not need a PayPal account.`,
       `Request ID: ${input.requestId}`,
-      `This link replaces any earlier payment link for this request. Work starts after PayPal confirms the payment.`,
+      `This link replaces any earlier payment link for this request. Work starts after the payment is confirmed.`,
       `You can also open ${trackRequestUrl(input.requestId)} with this Request ID and this email, then use the Payment tab.`,
     ].join("\n"),
   });
@@ -220,7 +221,7 @@ export async function sendWorkStarted(input: {
     subject: `Payment received for ${input.requestId}`,
     action: { label: "Open your request", href },
     text: [
-      `PayPal confirmed payment for your ${input.title} request.`,
+      `Payment is confirmed for your ${input.title} request.`,
       `Request ID: ${input.requestId}`,
       `Work has started. Track progress at ${href} with this Request ID and this email address.`,
     ].join("\n"),
@@ -239,7 +240,7 @@ export async function sendPaymentReceivedAlert(input: {
     subject: `Payment received for ${input.requestId}`,
     action: { label: "Open the request", href },
     text: [
-      `PayPal confirmed payment for ${input.clientName}'s ${input.title} request.`,
+      `Payment is confirmed for ${input.clientName}'s ${input.title} request.`,
       `Request ID: ${input.requestId}`,
       "Start the work, or assign it to a specialist.",
       href,

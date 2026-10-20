@@ -48,7 +48,7 @@ export const privacyPolicy = {
     {
       title: "Payment",
       paragraphs: [
-        "After we review the request, you pay the quoted USD amount through PayPal. PayPal processes the payment. We do not collect or store your full card number.",
+        "After we review the request, you pay the quoted USD amount by card, PayPal, or another method PayPal offers. A card payment does not need a PayPal account. PayPal processes the payment. We do not collect or store your full card number.",
         "We keep the payment status and the receipt details needed to connect the payment to your request.",
       ],
     },
@@ -115,7 +115,7 @@ export const termsOfService = {
     {
       title: "Placing a request",
       paragraphs: [
-        "You choose a service, complete the form, and may upload supporting files. The request is saved when you submit it, and we email you a Request ID. We review the files and email a PayPal link for the quoted USD amount. Work starts after PayPal confirms that payment.",
+        "You choose a service, complete the form, and may upload supporting files. The request is saved when you submit it, and we email you a Request ID. We review the files and email a payment link for the quoted USD amount. You choose card, PayPal, or another method PayPal offers. A card payment does not need a PayPal account. Work starts after that payment is confirmed.",
         "No account is required. You track the request with that Request ID and the email address on the request.",
       ],
     },
@@ -143,7 +143,7 @@ export const termsOfService = {
     {
       title: "Fees",
       paragraphs: [
-        "The fee is the USD amount we quote after reviewing your request. It is collected through PayPal. Drafting begins after that payment is confirmed.",
+        "The fee is the USD amount we quote after reviewing your request. You pay it by card, PayPal, or another method PayPal offers. A card payment does not need a PayPal account. Drafting begins after that payment is confirmed.",
         "If we cannot carry out a request, we will contact you. If you need to withdraw a request, write to us promptly from the email on the request and include the Request ID, before you approve a draft.",
       ],
     },

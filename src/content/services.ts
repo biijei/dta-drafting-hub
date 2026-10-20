@@ -114,7 +114,7 @@ export const services: Service[] = [
     revisions,
     price: 150,
     pricingNote:
-      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a PayPal link for the quoted USD amount.",
+      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a payment link for the quoted USD amount.",
     deliverables: [
       "Final formatted PDF",
       "Revision round",
@@ -388,7 +388,7 @@ export const services: Service[] = [
     revisions,
     price: 180,
     pricingNote:
-      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a PayPal link for the quoted USD amount.",
+      "Prices on this page are guidance. Submit the request first. DTA reviews the files and emails a payment link for the quoted USD amount.",
     deliverables: [
       "Business document(s)",
       "Formatted for use",

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { PageHero } from "@/components/ui/page-hero";
+import { PageLoading } from "@/components/ui/page-loading";
 import {
   getServerSubmitted,
   getSubmittedSnapshot,
@@ -38,7 +39,7 @@ export function SubmittedRequestWorkspace({ id }: { id: string }) {
   }, [request, stored]);
 
   if (!stored) {
-    return <div className="min-h-[16rem] flex-1 bg-white" />;
+    return <PageLoading label="Loading your request" />;
   }
 
   if (!request) {

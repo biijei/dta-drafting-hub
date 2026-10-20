@@ -399,7 +399,7 @@ export function RequestDetail({ id }: { id: string }) {
                     </>
                   ) : (
                     <p className="mt-3 text-sm text-[#6B7280]">
-                      An owner sets the price and emails the PayPal link.
+                      An owner sets the price and emails the payment link.
                     </p>
                   )}
                 </section>

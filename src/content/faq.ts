@@ -37,7 +37,7 @@ export const faqItems: FaqItem[] = [
     category: "Process",
     question: "How long does it take to complete a request?",
     answer:
-      "Timing depends on the document and the details you provide. Each service shows its expected turnaround. Work starts after DTA reviews the request and PayPal confirms the quoted payment.",
+      "Timing depends on the document and the details you provide. Each service shows its expected turnaround. Work starts after DTA reviews the request and the quoted payment is confirmed.",
   },
   {
     id: "changes",
@@ -51,7 +51,7 @@ export const faqItems: FaqItem[] = [
     category: "Process",
     question: "What happens after I submit a request?",
     answer:
-      "We save the request and email you a Request ID. DTA reviews the files, then emails a PayPal link for the quoted USD amount. Work starts after that payment is confirmed. Track the request with the Request ID and the email on the request.",
+      "We save the request and email you a Request ID. DTA reviews the files, then emails a payment link for the quoted USD amount. You can pay by card, PayPal, or another method PayPal offers, and a card payment does not need a PayPal account. Work starts after that payment is confirmed. Track the request with the Request ID and the email on the request.",
   },
   {
     id: "file-types",
@@ -72,14 +72,14 @@ export const faqItems: FaqItem[] = [
     category: "Payment",
     question: "When do I pay?",
     answer:
-      "Submit the request and files first. DTA reviews them and emails a PayPal link for the quoted USD amount. The same link is on the Payment tab of your request workspace. Work starts after PayPal confirms the payment.",
+      "Submit the request and files first. DTA reviews them and emails a payment link for the quoted USD amount. Open that link, or the Payment tab of your request workspace, and choose card, PayPal, or another method PayPal offers. A card payment does not need a PayPal account. Work starts after the payment is confirmed.",
   },
   {
     id: "payment-methods",
     category: "Payment",
     question: "What payment methods are accepted?",
     answer:
-      "PayPal, in USD. The payment link is emailed after DTA sets the price, and it is also shown in your request workspace.",
+      "Card, PayPal, or another method PayPal offers, in USD. A card payment does not need a PayPal account. The payment link is emailed after DTA sets the price, and the same choices are on the Payment tab of your request workspace.",
   },
   {
     id: "tracking",

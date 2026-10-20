@@ -1,7 +1,10 @@
 import { markRequestPaid } from "@/lib/fulfill";
 import { jsonError, jsonOk } from "@/lib/http";
+import { loadPayableRequest } from "@/lib/payable-request";
 import {
   capturePaypalOrder,
+  centsFromPaypal,
+  getPaypalOrder,
   verifyPaypalWebhook,
   type PayPalOrder,
 } from "@/lib/paypal";
@@ -54,6 +57,15 @@ export async function POST(request: Request) {
     }
 
     try {
+      const approved = await getPaypalOrder(orderId);
+      const requestId = approved.purchase_units?.[0]?.custom_id ?? "";
+      const current = await loadPayableRequest(requestId);
+      const quoted = centsFromPaypal(approved.purchase_units?.[0]?.amount?.value);
+
+      if (!current || quoted !== current.amount_cents) {
+        return jsonOk({ ok: true });
+      }
+
       await capturePaypalOrder(orderId);
     } catch (error) {
       if (alreadyCaptured(error)) {
@@ -78,7 +90,7 @@ export async function POST(request: Request) {
     return jsonError("Webhook is missing the PayPal order.", 400);
   }
 
-  const order: PayPalOrder = {
+  const fallback: PayPalOrder = {
     id: orderId,
     status: "COMPLETED",
     purchase_units: [
@@ -95,6 +107,16 @@ export async function POST(request: Request) {
       },
     ],
   };
+
+  let order = fallback;
+
+  try {
+    const loaded = await getPaypalOrder(orderId);
+    const captured = loaded.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+    order = captured ? loaded : { ...fallback, payment_source: loaded.payment_source };
+  } catch (error) {
+    console.error(error);
+  }
 
   try {
     await markRequestPaid(orderId, order);

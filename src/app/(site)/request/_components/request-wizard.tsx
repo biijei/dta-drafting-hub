@@ -27,6 +27,7 @@ import {
   type ServiceField,
 } from "@/content/services";
 import { Dropdown } from "@/components/ui/dropdown";
+import { PageLoading } from "@/components/ui/page-loading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileDropzone } from "@/components/ui/file-dropzone";
 
@@ -111,7 +112,7 @@ export function RequestWizard({ initialSlug }: RequestWizardProps) {
   );
 
   if (stored === undefined) {
-    return <div className="min-h-[24rem] flex-1 bg-white" />;
+    return <PageLoading label="Loading your request" />;
   }
 
   return <RequestFlow initialSlug={initialSlug} stored={stored} />;
@@ -871,8 +872,8 @@ function ReviewStep({
             </h2>
             <p className="mt-2 text-sm leading-6 text-navy-mid">
               Submit the request and files now. DTA reviews them and emails a
-              PayPal link for the quoted USD amount. Work starts after that
-              payment is confirmed.
+              payment link for the quoted USD amount. You can pay by card or
+              PayPal. Work starts after that payment is confirmed.
             </p>
           </div>
         </aside>
@@ -962,7 +963,7 @@ function ConfirmationStep({
           <span className="mt-2 block text-white">successfully</span>
         </h1>
         <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-gold">
-          We received your request. DTA will review the files and email a PayPal
+          We received your request. DTA will review the files and email a payment
           link for the quoted amount. Please save your Request ID.
         </p>
         <div className="mx-auto mt-8 max-w-lg rounded-2xl bg-white/10 px-5 py-6 sm:px-6">

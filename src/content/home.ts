@@ -17,7 +17,7 @@ export const homeProcessSteps = [
   {
     number: 3,
     title: "Pay your quote",
-    description: "Pay the emailed PayPal link to start the work.",
+    description: "Open the emailed payment link and choose card, PayPal, or another available method.",
   },
   {
     number: 4,

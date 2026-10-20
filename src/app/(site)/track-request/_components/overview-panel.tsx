@@ -12,6 +12,7 @@ type OverviewPanelProps = {
   onRequestChange: () => void;
   onViewDocument: () => void;
   onRefresh: () => Promise<void>;
+  onPay: () => void;
 };
 
 const statusFields = (request: TrackedRequest) => [
@@ -47,25 +48,27 @@ function firstFinalFile(request: TrackedRequest) {
 function OverviewAction({
   request,
   onRequestChange,
+  onPay,
 }: {
   request: TrackedRequest;
   onRequestChange: () => void;
+  onPay: () => void;
 }) {
   const awaitingQuote = request.status === "Pending Review";
   const awaitingPayment = request.status === "Awaiting Payment";
 
   if (awaitingQuote || awaitingPayment) {
-    if (awaitingPayment && request.paymentUrl) {
+    if (awaitingPayment) {
       return (
-        <a href={request.paymentUrl} className={payAction}>
-          Pay with PayPal
-        </a>
+        <button type="button" onClick={onPay} className={payAction}>
+          Pay now
+        </button>
       );
     }
 
     return (
       <button type="button" disabled className={outlineAction}>
-        Pay with PayPal
+        Pay now
       </button>
     );
   }
@@ -89,6 +92,7 @@ export function OverviewPanel({
   onRequestChange,
   onViewDocument,
   onRefresh,
+  onPay,
 }: OverviewPanelProps) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -225,6 +229,7 @@ export function OverviewPanel({
             <OverviewAction
               request={request}
               onRequestChange={onRequestChange}
+              onPay={onPay}
             />
             {completed ? (
               <button

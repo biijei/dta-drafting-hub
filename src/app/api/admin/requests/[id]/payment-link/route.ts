@@ -1,7 +1,7 @@
 import { requireStaff } from "@/lib/auth";
 import { jsonError, jsonOk } from "@/lib/http";
 import { sendPaymentLink } from "@/lib/mail";
-import { createPaypalOrder } from "@/lib/paypal";
+import { paymentPageUrl } from "@/lib/paypal";
 import { formatUsdCents } from "@/content/services";
 import { createServiceClient } from "@/lib/supabase/admin";
 
@@ -50,19 +50,13 @@ export async function POST(request: Request, context: RouteContext) {
       return jsonError("This request already has a confirmed payment.", 400);
     }
 
-    const amount = (cents / 100).toFixed(2);
-    const order = await createPaypalOrder({
-      requestId: current.id,
-      amount,
-      description: current.service_title,
-    });
-
+    const url = paymentPageUrl(current.id);
     const { data: saved, error } = await supabase
       .from("requests")
       .update({
         amount_cents: cents,
-        paypal_order_id: order.orderId,
-        payment_url: order.approvalUrl,
+        paypal_order_id: null,
+        payment_url: url,
         status: "Awaiting Payment",
         updated_at: new Date().toISOString(),
       })
@@ -87,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
       requestId: current.public_id,
       title: current.service_title,
       amount: label,
-      url: order.approvalUrl,
+      url,
     });
 
     return jsonOk({ ok: true });

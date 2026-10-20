@@ -1,44 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { PageHero } from "@/components/ui/page-hero";
+import { PageLoading } from "@/components/ui/page-loading";
 import type { TrackedRequest } from "@/content/track-request";
+import { LookupForm } from "./lookup-form";
 import { RequestWorkspace } from "./request-workspace";
 
 export function TrackWorkspace({ id }: { id: string }) {
+  const router = useRouter();
+  const loadGeneration = useRef(0);
   const [request, setRequest] = useState<TrackedRequest | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "denied" | "missing">(
+  const [state, setState] = useState<"loading" | "ready" | "denied" | "missing" | "error">(
     "loading",
   );
 
-  function load() {
-    return fetch(`/api/track/requests/${encodeURIComponent(id)}`).then(async (response) => {
-      if (response.status === 401) {
-        setState("denied");
-        return;
-      }
+  function load(options?: { pending?: boolean }) {
+    const generation = ++loadGeneration.current;
 
-      if (!response.ok) {
-        setState("missing");
-        return;
-      }
+    if (options?.pending) {
+      setState("loading");
+    }
 
-      setRequest((await response.json()) as TrackedRequest);
-      setState("ready");
-    });
-  }
-
-  useEffect(() => {
-    let active = true;
-
-    fetch(`/api/track/requests/${encodeURIComponent(id)}`)
+    return fetch(`/api/track/requests/${encodeURIComponent(id)}`)
       .then(async (response) => {
-        if (!active) {
+        if (generation !== loadGeneration.current) {
           return;
         }
 
         if (response.status === 401) {
+          setRequest(null);
           setState("denied");
           return;
         }
@@ -52,34 +45,58 @@ export function TrackWorkspace({ id }: { id: string }) {
         setState("ready");
       })
       .catch(() => {
-        if (active) {
-          setState("missing");
+        if (generation === loadGeneration.current) {
+          setState("error");
         }
       });
+  }
+
+  useEffect(() => {
+    void load();
 
     return () => {
-      active = false;
+      loadGeneration.current += 1;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (state === "loading") {
-    return <div className="min-h-[16rem] flex-1 bg-white" />;
+    return <PageLoading label="Loading your request" />;
   }
 
   if (state === "denied") {
     return (
+      <section className="flex flex-1 justify-center px-4 py-10 sm:py-16">
+        <LookupForm
+          initialId={id}
+          onVerified={(verifiedId) => {
+            if (verifiedId.toUpperCase() === id.trim().toUpperCase()) {
+              void load({ pending: true });
+              return;
+            }
+
+            router.push(`/track-request/${encodeURIComponent(verifiedId)}`);
+          }}
+        />
+      </section>
+    );
+  }
+
+  if (state === "error") {
+    return (
       <>
         <PageHero
-          title="Confirm your email"
-          description="Enter the Request ID and the email on the request."
+          title="Couldn't load this request"
+          description="Check your connection and try again."
         />
         <section className="flex flex-1 justify-center px-4 py-16">
-          <Link
-            href={`/track-request?id=${encodeURIComponent(id)}`}
+          <button
+            type="button"
+            onClick={() => void load({ pending: true })}
             className="rounded-full bg-navy px-5 py-2.5 text-sm font-medium text-white"
           >
-            Track my request
-          </Link>
+            Try again
+          </button>
         </section>
       </>
     );
