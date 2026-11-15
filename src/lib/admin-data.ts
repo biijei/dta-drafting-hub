@@ -8,6 +8,7 @@ import {
   toPayments,
   type RequestRow,
 } from "@/lib/records";
+import { isHiddenStaffEmail } from "@/lib/hidden-staff";
 import { purgeExpiredFiles } from "@/lib/purge-files";
 import { createServiceClient } from "@/lib/supabase/admin";
 
@@ -52,13 +53,15 @@ export async function loadAdminData() {
     toAdminRequest(request, files, revisions, profiles),
   );
   const adminPayments = toPayments(payments, requests);
-  const staff: StaffMember[] = profiles.map((profile) => ({
-    id: profile.id,
-    name: profile.full_name,
-    email: profile.email,
-    role: profile.role,
-    active: profile.active,
-  }));
+  const staff: StaffMember[] = profiles
+    .filter((profile) => !isHiddenStaffEmail(profile.email))
+    .map((profile) => ({
+      id: profile.id,
+      name: profile.full_name,
+      email: profile.email,
+      role: profile.role,
+      active: profile.active,
+    }));
   const settingsRow = settingsRes.data;
 
   return {

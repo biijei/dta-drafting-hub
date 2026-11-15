@@ -159,36 +159,117 @@ export function formatFileSize(bytes: number) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+const displayTimeZone = "America/New_York";
+
+function partValue(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) {
+  return Number(parts.find((part) => part.type === type)?.value);
+}
+
+function timeZoneOffsetMs(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: displayTimeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date);
+  let hour = partValue(parts, "hour");
+  if (hour === 24) hour = 0;
+  const asUtc = Date.UTC(
+    partValue(parts, "year"),
+    partValue(parts, "month") - 1,
+    partValue(parts, "day"),
+    hour,
+    partValue(parts, "minute"),
+    partValue(parts, "second"),
+  );
+
+  return asUtc - date.getTime();
+}
+
+function easternInstant(year: number, month: number, day: number) {
+  const wall = Date.UTC(year, month - 1, day);
+  let utc = wall;
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    utc = wall - timeZoneOffsetMs(new Date(utc));
+  }
+
+  return new Date(utc);
+}
+
+function easternCalendar(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: displayTimeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(date);
+
+  return {
+    year: partValue(parts, "year"),
+    month: partValue(parts, "month"),
+    day: partValue(parts, "day"),
+  };
+}
+
+export function easternMonthStart(now = new Date()) {
+  const { year, month } = easternCalendar(now);
+  return easternInstant(year, month, 1);
+}
+
+export function easternDaysAgoStart(days: number, now = new Date()) {
+  const { year, month, day } = easternCalendar(now);
+  const shifted = new Date(Date.UTC(year, month - 1, day - days));
+
+  return easternInstant(
+    shifted.getUTCFullYear(),
+    shifted.getUTCMonth() + 1,
+    shifted.getUTCDate(),
+  );
+}
+
+function easternZoneLabel(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: displayTimeZone,
+    timeZoneName: "short",
+  }).formatToParts(date);
+
+  return parts.find((part) => part.type === "timeZoneName")?.value ?? "EST";
+}
+
+function easternClock(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: displayTimeZone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
+    .format(date)
+    .toLowerCase();
+}
+
 export function formatUploadedAt(date: Date) {
   const day = new Intl.DateTimeFormat("en-GB", {
+    timeZone: displayTimeZone,
     day: "numeric",
     month: "long",
     year: "numeric",
   }).format(date);
-  const time = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
-    .format(date)
-    .toLowerCase();
 
-  return `${day} at ${time}`;
+  return `${day} at ${easternClock(date)} ${easternZoneLabel(date)}`;
 }
 
 export function formatShortStamp(date: Date) {
   const day = new Intl.DateTimeFormat("en-GB", {
+    timeZone: displayTimeZone,
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(date);
-  const time = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
-    .format(date)
-    .toLowerCase();
 
-  return `${day}\n${time}`;
+  return `${day}\n${easternClock(date)} ${easternZoneLabel(date)}`;
 }
