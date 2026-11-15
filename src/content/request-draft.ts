@@ -1,3 +1,4 @@
+import { formatUploadedAt } from "@/content/admin";
 import type { TrackedRequest } from "@/content/track-request";
 import { getService, type Service } from "@/content/services";
 
@@ -160,16 +161,7 @@ export function saveSubmittedRequest(request: TrackedRequest) {
 }
 
 export function formatSubmittedAt(date: Date) {
-  const day = date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const time = date
-    .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    .toLowerCase();
-
-  return `${day} at ${time}`;
+  return formatUploadedAt(date);
 }
 
 export function buildTrackedRequest(

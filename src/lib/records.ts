@@ -1,4 +1,6 @@
 import {
+  easternDaysAgoStart,
+  easternMonthStart,
   formatFileSize,
   formatShortStamp,
   formatUploadedAt,
@@ -16,8 +18,9 @@ import {
 } from "@/content/admin";
 import { formatUsdCents, getService } from "@/content/services";
 import type { DocumentFile, DocumentGroup, ProcessStep, TrackedRequest } from "@/content/track-request";
+import { isHiddenStaffEmail } from "@/lib/hidden-staff";
 
-type ProfileRow = { id: string; full_name: string };
+type ProfileRow = { id: string; full_name: string; email?: string | null };
 
 type FileRow = {
   id: string;
@@ -135,6 +138,7 @@ export function toAdminRequest(
 ): AdminRequest {
   const mine = files.filter((file) => file.request_id === request.id);
   const assignee = profiles.find((profile) => profile.id === request.assignee_id);
+  const hiddenAssignee = isHiddenStaffEmail(assignee?.email);
   const requestRevisions = revisions.filter(
     (revision) => revision.request_id === request.id,
   );
@@ -172,8 +176,8 @@ export function toAdminRequest(
         : "Paid",
     quotedAmount: request.amount_cents > 0 ? formatUsdCents(request.amount_cents) : "To be quoted",
     paymentUrl: request.payment_url,
-    assigneeId: request.assignee_id,
-    assignee: assignee?.full_name ?? null,
+    assigneeId: hiddenAssignee ? null : request.assignee_id,
+    assignee: hiddenAssignee ? null : (assignee?.full_name ?? null),
     detailRows: detailRows(request.service_slug, request.details),
     phone: request.phone || "—",
     country: request.country || "—",
@@ -262,8 +266,8 @@ export function toPayments(
 
 export function overviewStats(requests: RequestRow[], payments: PaymentRow[]): OverviewStats {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthStart = easternMonthStart(now);
+  const weekAgo = easternDaysAgoStart(7, now);
   const thisMonth = requests.filter(
     (request) => new Date(request.created_at) >= monthStart,
   ).length;
